@@ -20,6 +20,17 @@ interface ShopifyOrder {
   } | null;
 }
 
+function log(event: string, data: Record<string, unknown> = {}): void {
+  console.log(
+    JSON.stringify({
+      scope: 'shopify.orders.webhook',
+      event,
+      at: new Date().toISOString(),
+      ...data,
+    })
+  );
+}
+
 function orderTotal(order: ShopifyOrder): number {
   const raw = order.current_total_price ?? order.total_price ?? 0;
   return Math.max(0, Number(raw) || 0);
@@ -39,12 +50,27 @@ function isOnOrAfterStartDate(order: ShopifyOrder): boolean {
 }
 
 shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
+  const topic = req.get('X-Shopify-Topic') || '';
+  const shopDomain = req.get('X-Shopify-Shop-Domain') || '';
+  const webhookId = req.get('X-Shopify-Webhook-Id') || '';
+
   try {
-    const topic = req.get('X-Shopify-Topic') || '';
     const order = (req.body || {}) as ShopifyOrder;
     const orderId = String(order.id || '');
+    const orderName = order.name || null;
+
+    log('received', {
+      topic,
+      shopDomain,
+      webhookId,
+      orderId: orderId || null,
+      orderName,
+      hasBody: Boolean(req.body),
+      bodyKeys: req.body && typeof req.body === 'object' ? Object.keys(req.body).slice(0, 20) : [],
+    });
 
     if (!orderId) {
+      log('rejected', { reason: 'missing_order_id', topic, shopDomain });
       res.status(400).json({ error: 'Missing order id' });
       return;
     }
@@ -55,6 +81,7 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       [orderId]
     );
     if (existing.rows[0]) {
+      log('duplicate', { orderId, orderName, topic });
       res.status(200).json({ ok: true, duplicate: true, orderId });
       return;
     }
@@ -64,7 +91,29 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
     const total = orderTotal(order);
     const orderDay = orderDateKey(order);
 
+    log('parsed', {
+      orderId,
+      orderName,
+      topic,
+      customerId: customerId || null,
+      email,
+      orderTotal: total,
+      orderDate: orderDay,
+      currency: order.currency || null,
+      creditsStartDate: config.creditsStartDate,
+      poundsPerCredit: config.creditsPoundsPerCredit,
+    });
+
     if (!isOnOrAfterStartDate(order)) {
+      log('skipped', {
+        reason: 'before_start_date',
+        orderId,
+        orderName,
+        orderDate: orderDay,
+        creditsStartDate: config.creditsStartDate,
+        customerId: customerId || null,
+        orderTotal: total,
+      });
       await query(
         `INSERT INTO processed_orders (shopify_order_id, shopify_customer_id, credits_added, note)
          VALUES ($1, $2, 0, $3)
@@ -87,6 +136,13 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
     }
 
     if (!customerId) {
+      log('skipped', {
+        reason: 'no_customer',
+        orderId,
+        orderName,
+        topic,
+        orderTotal: total,
+      });
       await query(
         `INSERT INTO processed_orders (shopify_order_id, shopify_customer_id, credits_added, note)
          VALUES ($1, NULL, 0, $2)
@@ -96,6 +152,14 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       res.status(200).json({ ok: true, skipped: true, reason: 'no_customer', orderId });
       return;
     }
+
+    log('applying_spend', {
+      orderId,
+      orderName,
+      customerId,
+      email,
+      orderTotal: total,
+    });
 
     const result = await applyOrderSpend(customerId, total, email);
 
@@ -110,6 +174,22 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
         `Order ${order.name || orderId}; £${total.toFixed(2)} + remainder £${result.previousRemainder.toFixed(2)} = £${result.pooledSpend.toFixed(2)} → ${result.creditsAdded} credits, leftover £${result.newRemainder.toFixed(2)}; topic=${topic || 'n/a'}`,
       ]
     );
+
+    log('credited', {
+      orderId,
+      orderName,
+      customerId,
+      email,
+      orderTotal: total,
+      orderDate: orderDay,
+      previousRemainder: result.previousRemainder,
+      pooledSpend: result.pooledSpend,
+      creditsAdded: result.creditsAdded,
+      spendRemainder: result.newRemainder,
+      creditsRemaining: result.customer.credits,
+      totalSpend: result.customer.total_spend,
+      topic,
+    });
 
     res.status(200).json({
       ok: true,
@@ -126,6 +206,9 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       totalSpend: result.customer.total_spend,
     });
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    log('error', { topic, shopDomain, webhookId, message, stack });
     console.error('Shopify order webhook error', err);
     res.status(500).json({ error: 'Webhook processing failed' });
   }
