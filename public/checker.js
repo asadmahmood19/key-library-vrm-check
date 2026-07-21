@@ -65,32 +65,56 @@
 
   function renderResult(data) {
     const v = data.vehicle;
-    const fields = [
-      ['Registration', v.vrm],
+    const display = function (value) {
+      return value == null || value === '' ? '—' : String(value);
+    };
+
+    function section(title, rows) {
+      return (
+        '<div class="result-section">' +
+        '<h2>' +
+        escapeHtml(title) +
+        '</h2>' +
+        '<table class="result-table">' +
+        '<tbody>' +
+        rows
+          .map(function (row) {
+            return (
+              '<tr>' +
+              '<td class="label">' +
+              escapeHtml(row[0]) +
+              '</td>' +
+              '<td class="value">' +
+              escapeHtml(display(row[1])) +
+              '</td>' +
+              '</tr>'
+            );
+          })
+          .join('') +
+        '</tbody></table></div>'
+      );
+    }
+
+    const summary = [
+      ['Registration Number', v.vrm],
+      ['VIN', v.vin || v.vinLast5],
       ['Make', v.make],
       ['Model', v.model],
       ['Year', v.year],
-      ['Colour', v.colour],
-      ['Fuel', v.fuel],
-      ['Engine (cc)', v.engineCc],
-      ['Body', v.body],
-      ['Transmission', v.transmission],
-      ['VIN (last 5)', v.vinLast5],
     ];
+
+    const more = [
+      ['Fuel Type', v.fuel],
+      ['Colour', v.colour],
+      ['Engine Capacity', v.engineCc],
+      ['Date First Registered', v.dateFirstRegistered],
+      ['Tax Status', v.taxStatus],
+      ['Tax Due Date', v.taxDueDate],
+    ];
+
     resultPanel.innerHTML =
-      '<h2>Vehicle details</h2><dl>' +
-      fields
-        .map(function (pair) {
-          return (
-            '<dt>' +
-            escapeHtml(String(pair[0])) +
-            '</dt><dd>' +
-            escapeHtml(pair[1] == null ? '—' : String(pair[1])) +
-            '</dd>'
-          );
-        })
-        .join('') +
-      '</dl>' +
+      section('Summary', summary) +
+      section('More Information', more) +
       (data.fromCache
         ? '<span class="cache-badge">Served from cache (no credit used)</span>'
         : '');

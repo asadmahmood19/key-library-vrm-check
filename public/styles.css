@@ -128,38 +128,59 @@ button.secondary {
 }
 
 .result {
-  margin-top: 16px;
-  padding: 14px;
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  margin-top: 24px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
-.result h2 {
-  margin: 0 0 10px;
-  font-size: 1.1rem;
+.result-section {
+  margin-bottom: 28px;
 }
 
-.result dl {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  gap: 6px 10px;
-  margin: 0;
+.result-section h2 {
+  margin: 0 0 12px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ink);
 }
 
-.result dt {
-  color: var(--muted);
-  font-size: 0.85rem;
+.result-table {
+  width: 100%;
+  border-collapse: collapse;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
 }
 
-.result dd {
-  margin: 0;
-  font-weight: 600;
+.result-table tr:nth-child(odd) {
+  background: var(--accent);
+  color: #fff;
+}
+
+.result-table tr:nth-child(even) {
+  background: #fff;
+  color: var(--ink);
+}
+
+.result-table td {
+  padding: 14px 18px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: none;
+}
+
+.result-table td.label {
+  text-align: left;
+}
+
+.result-table td.value {
+  text-align: right;
 }
 
 .cache-badge {
   display: inline-block;
-  margin-top: 10px;
+  margin-top: 4px;
   font-size: 0.8rem;
   color: var(--ok);
 }
@@ -347,7 +368,8 @@ td input.small {
     align-items: flex-start;
   }
 
-  .result dl {
-    grid-template-columns: 1fr;
+  .result-table td {
+    padding: 12px 14px;
+    font-size: 0.85rem;
   }
 }
