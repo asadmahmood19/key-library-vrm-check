@@ -49,6 +49,17 @@ CREATE INDEX IF NOT EXISTS idx_vehicle_cache_fetched
 
 CREATE INDEX IF NOT EXISTS idx_customers_email
   ON customers (email);
+
+CREATE TABLE IF NOT EXISTS processed_orders (
+  shopify_order_id TEXT PRIMARY KEY,
+  shopify_customer_id TEXT,
+  credits_added INTEGER NOT NULL DEFAULT 0,
+  note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS spend_remainder NUMERIC(12, 2) NOT NULL DEFAULT 0;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS total_spend NUMERIC(12, 2) NOT NULL DEFAULT 0;
 `;
 
 let migrated = false;

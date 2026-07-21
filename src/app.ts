@@ -7,12 +7,23 @@ import { ensureSchema } from './db';
 import { creditsRouter } from './routes/credits';
 import { lookupRouter } from './routes/lookup';
 import { adminRouter } from './routes/admin';
+import { shopifyWebhookRouter } from './routes/shopifyWebhook';
 
 export function createApp() {
   const app = express();
 
   app.set('trust proxy', 1);
-  app.use(express.json());
+
+  app.use(async (_req, _res, next) => {
+    try {
+      await ensureSchema();
+      next();
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
   app.use(
@@ -26,15 +37,6 @@ export function createApp() {
     })
   );
 
-  app.use(async (_req, _res, next) => {
-    try {
-      await ensureSchema();
-      next();
-    } catch (err) {
-      next(err);
-    }
-  });
-
   const publicDir = path.join(process.cwd(), 'public');
   app.use(express.static(publicDir));
 
@@ -42,6 +44,7 @@ export function createApp() {
     res.json({ buyCreditsUrl: config.buyCreditsUrl });
   });
 
+  app.use('/api/webhooks/shopify', shopifyWebhookRouter);
   app.use('/api/credits', creditsRouter);
   app.use('/api/lookup', lookupRouter);
   app.use('/api/admin', adminRouter);

@@ -79,6 +79,39 @@ Schema migrations run automatically on first request (`ensureSchema`). You can a
 - **Cache miss**: call CheckCarDetails, store cache, deduct **1 credit**, log lookup
 - **Zero credits**: submit disabled; show Buy Credits → `BUY_CREDITS_URL`
 
-## Future: Buy Credits via Shopify
+## Shopify order webhook (auto-award credits)
 
-Replace `BUY_CREDITS_URL` with a hidden Shopify product URL. Later, a Shopify webhook can award credits after checkout — the button already reads from one env var so the swap stays simple.
+**Webhook URL (use this in Shopify):**
+
+```
+https://key-library-vrm-check-theta.vercel.app/api/webhooks/shopify/orders
+```
+
+Recommended event: **Order payment** (`orders/paid`).
+
+### Rule
+
+**£10 spent = 1 lookup credit**, with **carry-over remainder** across orders.
+
+Only orders on/after **`CREDITS_START_DATE`** (default `2026-07-22`) count.
+
+Example:
+
+| Day | Order | Remainder before | Pooled | Credits added | Remainder after |
+|-----|-------|------------------|--------|---------------|-----------------|
+| 1 | £9 | £0 | £9 | 0 | £9 |
+| 2 | £11 | £9 | £20 | 2 | £0 |
+
+### Setup
+
+1. Shopify Admin → **Settings → Notifications → Webhooks**
+2. Create webhook:
+   - Event: **Order payment**
+   - Format: **JSON**
+   - URL: the webhook URL above
+3. Optional env vars:
+   - `CREDITS_POUNDS_PER_CREDIT` (default `10`)
+   - `CREDITS_START_DATE` (default `2026-07-22`)
+
+The endpoint finds the customer, adds the order total to their spend remainder, awards whole credits, keeps leftover spend, and ignores duplicate order deliveries.
+

@@ -1,11 +1,27 @@
 import { pool, query } from '../db';
+import { config } from '../config';
 
 export interface Customer {
   shopify_customer_id: string;
   email: string | null;
   credits: number;
+  spend_remainder: number;
+  total_spend: number;
   created_at: Date;
   updated_at: Date;
+}
+
+function roundMoney(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function mapCustomer(row: Customer): Customer {
+  return {
+    ...row,
+    credits: Number(row.credits),
+    spend_remainder: Number(row.spend_remainder || 0),
+    total_spend: Number(row.total_spend || 0),
+  };
 }
 
 export async function upsertCustomer(
@@ -21,7 +37,7 @@ export async function upsertCustomer(
      RETURNING *`,
     [shopifyCustomerId, email || null]
   );
-  return rows[0];
+  return mapCustomer(rows[0]);
 }
 
 export async function getCustomer(shopifyCustomerId: string): Promise<Customer | null> {
@@ -29,7 +45,7 @@ export async function getCustomer(shopifyCustomerId: string): Promise<Customer |
     `SELECT * FROM customers WHERE shopify_customer_id = $1`,
     [shopifyCustomerId]
   );
-  return rows[0] || null;
+  return rows[0] ? mapCustomer(rows[0]) : null;
 }
 
 export async function setCredits(
@@ -46,7 +62,7 @@ export async function setCredits(
      RETURNING *`,
     [shopifyCustomerId, credits]
   );
-  return rows[0];
+  return mapCustomer(rows[0]);
 }
 
 export async function adjustCredits(
@@ -63,7 +79,7 @@ export async function adjustCredits(
     if (!current.rows[0]) {
       throw new Error('Customer not found');
     }
-    const next = current.rows[0].credits + delta;
+    const next = Number(current.rows[0].credits) + delta;
     if (next < 0) {
       throw new Error('Insufficient credits');
     }
@@ -73,7 +89,75 @@ export async function adjustCredits(
       [shopifyCustomerId, next]
     );
     await client.query('COMMIT');
-    return updated.rows[0];
+    return mapCustomer(updated.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * Add order spend to the customer's carry-over balance and award credits.
+ * Example: remainder £9 + order £11 = £20 → 2 credits, remainder £0.
+ */
+export async function applyOrderSpend(
+  shopifyCustomerId: string,
+  orderTotal: number,
+  email?: string | null
+): Promise<{
+  customer: Customer;
+  creditsAdded: number;
+  previousRemainder: number;
+  newRemainder: number;
+  pooledSpend: number;
+}> {
+  const total = roundMoney(Math.max(0, orderTotal));
+  const perCredit = config.creditsPoundsPerCredit;
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    await client.query(
+      `INSERT INTO customers (shopify_customer_id, email, credits)
+       VALUES ($1, $2, 0)
+       ON CONFLICT (shopify_customer_id) DO UPDATE
+         SET email = COALESCE(EXCLUDED.email, customers.email),
+             updated_at = NOW()`,
+      [shopifyCustomerId, email || null]
+    );
+
+    const locked = await client.query<Customer>(
+      `SELECT * FROM customers WHERE shopify_customer_id = $1 FOR UPDATE`,
+      [shopifyCustomerId]
+    );
+    const current = mapCustomer(locked.rows[0]);
+    const previousRemainder = current.spend_remainder;
+    const pooledSpend = roundMoney(previousRemainder + total);
+    const creditsAdded = Math.floor(pooledSpend / perCredit);
+    const newRemainder = roundMoney(pooledSpend - creditsAdded * perCredit);
+
+    const updated = await client.query<Customer>(
+      `UPDATE customers
+       SET credits = credits + $2,
+           spend_remainder = $3,
+           total_spend = total_spend + $4,
+           updated_at = NOW()
+       WHERE shopify_customer_id = $1
+       RETURNING *`,
+      [shopifyCustomerId, creditsAdded, newRemainder, total]
+    );
+
+    await client.query('COMMIT');
+    return {
+      customer: mapCustomer(updated.rows[0]),
+      creditsAdded,
+      previousRemainder,
+      newRemainder,
+      pooledSpend,
+    };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
@@ -91,7 +175,7 @@ export async function deductOneCredit(shopifyCustomerId: string): Promise<Custom
      RETURNING *`,
     [shopifyCustomerId]
   );
-  return rows[0] || null;
+  return rows[0] ? mapCustomer(rows[0]) : null;
 }
 
 export async function listCustomers(search?: string, limit = 100, offset = 0): Promise<Customer[]> {
@@ -103,11 +187,11 @@ export async function listCustomers(search?: string, limit = 100, offset = 0): P
        LIMIT $2 OFFSET $3`,
       [`%${search}%`, limit, offset]
     );
-    return rows;
+    return rows.map(mapCustomer);
   }
   const { rows } = await query<Customer>(
     `SELECT * FROM customers ORDER BY updated_at DESC LIMIT $1 OFFSET $2`,
     [limit, offset]
   );
-  return rows;
+  return rows.map(mapCustomer);
 }
