@@ -3,12 +3,12 @@
   --ink: #1c1b19;
   --muted: #6b6560;
   --line: #ddd6cc;
-  --accent: #0f4c5c;
-  --accent-hover: #0b3a46;
+  --accent: #f15c2e;
+  --accent-hover: #d14e26;
   --danger: #9b1d1d;
   --ok: #1f6b3a;
   --white: #fff;
-  --font: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font: "Roboto", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 }
 
 * {
@@ -31,11 +31,12 @@ body {
 body.checker {
   background: transparent;
   min-height: 0;
+  font-family: "Roboto", sans-serif;
 }
 
 .checker-main {
-  max-width: 480px;
-  margin: 0 auto;
+  max-width: 1125px;
+  margin: 50px auto 0;
   padding: 12px;
 }
 
