@@ -1,0 +1,240 @@
+(function () {
+  const loginOverlay = document.getElementById('loginOverlay');
+  const dashboard = document.getElementById('dashboard');
+  const loginForm = document.getElementById('loginForm');
+  const loginError = document.getElementById('loginError');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const statsGrid = document.getElementById('statsGrid');
+  const customersBody = document.getElementById('customersBody');
+  const lookupsBody = document.getElementById('lookupsBody');
+  const cacheBody = document.getElementById('cacheBody');
+  const creditForm = document.getElementById('creditForm');
+  const customerSearch = document.getElementById('customerSearch');
+  const refreshCustomers = document.getElementById('refreshCustomers');
+
+  function show(el) {
+    el.classList.remove('hidden');
+  }
+
+  function hide(el) {
+    el.classList.add('hidden');
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  async function api(path, options) {
+    const res = await fetch(path, {
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', ...(options && options.headers) },
+      ...options,
+    });
+    if (res.headers.get('content-type') && res.headers.get('content-type').includes('text/csv')) {
+      return res;
+    }
+    const data = await res.json().catch(function () {
+      return {};
+    });
+    if (!res.ok) {
+      const err = new Error(data.error || 'Request failed');
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
+  async function checkSession() {
+    const data = await api('/api/admin/session');
+    if (data.authenticated) {
+      hide(loginOverlay);
+      show(dashboard);
+      await refreshAll();
+    } else {
+      show(loginOverlay);
+      hide(dashboard);
+    }
+  }
+
+  async function refreshAll() {
+    await Promise.all([loadStats(), loadCustomers(), loadLookups(), loadCache()]);
+  }
+
+  async function loadStats() {
+    const data = await api('/api/admin/stats');
+    const items = [
+      ['Total lookups', data.totalLookups],
+      ['Unique VRMs', data.uniqueVrms],
+      ['Cache hit rate', data.cacheHitRate + '%'],
+      ['Customers with credits', data.customersWithCredits],
+      ['Cached registrations', data.cachedRegistrations],
+    ];
+    statsGrid.innerHTML = items
+      .map(function (pair) {
+        return (
+          '<div class="stat"><div class="label">' +
+          escapeHtml(pair[0]) +
+          '</div><div class="value">' +
+          escapeHtml(String(pair[1])) +
+          '</div></div>'
+        );
+      })
+      .join('');
+  }
+
+  async function loadCustomers() {
+    const q = customerSearch.value.trim();
+    const qs = q ? '?search=' + encodeURIComponent(q) : '';
+    const data = await api('/api/admin/customers' + qs);
+    customersBody.innerHTML = data.customers
+      .map(function (c) {
+        return (
+          '<tr>' +
+          '<td>' +
+          escapeHtml(c.shopify_customer_id) +
+          '</td>' +
+          '<td>' +
+          escapeHtml(c.email || '—') +
+          '</td>' +
+          '<td>' +
+          escapeHtml(String(c.credits)) +
+          '</td>' +
+          '<td>' +
+          escapeHtml(new Date(c.updated_at).toLocaleString()) +
+          '</td>' +
+          '<td class="actions">' +
+          '<input class="small" type="number" min="0" value="' +
+          escapeHtml(String(c.credits)) +
+          '" data-id="' +
+          escapeHtml(c.shopify_customer_id) +
+          '" />' +
+          '<button type="button" data-save="' +
+          escapeHtml(c.shopify_customer_id) +
+          '">Save</button>' +
+          '</td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+  }
+
+  async function loadLookups() {
+    const data = await api('/api/admin/lookups?limit=50');
+    lookupsBody.innerHTML = data.lookups
+      .map(function (row) {
+        return (
+          '<tr>' +
+          '<td>' +
+          escapeHtml(new Date(row.created_at).toLocaleString()) +
+          '</td>' +
+          '<td>' +
+          escapeHtml(row.shopify_customer_id) +
+          '</td>' +
+          '<td>' +
+          escapeHtml(row.vrm) +
+          '</td>' +
+          '<td>' +
+          (row.was_cached ? 'Yes' : 'No') +
+          '</td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+  }
+
+  async function loadCache() {
+    const data = await api('/api/admin/cache?limit=50');
+    cacheBody.innerHTML = data.cache
+      .map(function (row) {
+        return (
+          '<tr>' +
+          '<td>' +
+          escapeHtml(row.vrm) +
+          '</td>' +
+          '<td>' +
+          escapeHtml(new Date(row.fetched_at).toLocaleString()) +
+          '</td>' +
+          '<td>' +
+          escapeHtml(String(row.age_days)) +
+          '</td>' +
+          '<td><button type="button" class="secondary" data-purge="' +
+          escapeHtml(row.vrm) +
+          '">Purge</button></td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+  }
+
+  loginForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    hide(loginError);
+    try {
+      await api('/api/admin/login', {
+        method: 'POST',
+        body: JSON.stringify({ password: document.getElementById('passwordInput').value }),
+      });
+      hide(loginOverlay);
+      show(dashboard);
+      await refreshAll();
+    } catch (err) {
+      loginError.textContent = err.message || 'Login failed';
+      show(loginError);
+    }
+  });
+
+  logoutBtn.addEventListener('click', async function () {
+    await api('/api/admin/logout', { method: 'POST', body: '{}' });
+    show(loginOverlay);
+    hide(dashboard);
+  });
+
+  creditForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    const fd = new FormData(creditForm);
+    await api('/api/admin/customers', {
+      method: 'POST',
+      body: JSON.stringify({
+        customer_id: fd.get('customer_id'),
+        email: fd.get('email') || undefined,
+        credits: Number(fd.get('credits')),
+      }),
+    });
+    creditForm.reset();
+    await Promise.all([loadCustomers(), loadStats()]);
+  });
+
+  refreshCustomers.addEventListener('click', loadCustomers);
+  customerSearch.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') loadCustomers();
+  });
+
+  customersBody.addEventListener('click', async function (e) {
+    const btn = e.target.closest('[data-save]');
+    if (!btn) return;
+    const id = btn.getAttribute('data-save');
+    const input = customersBody.querySelector('input[data-id="' + id + '"]');
+    await api('/api/admin/customers/' + encodeURIComponent(id) + '/credits', {
+      method: 'PATCH',
+      body: JSON.stringify({ credits: Number(input.value) }),
+    });
+    await Promise.all([loadCustomers(), loadStats()]);
+  });
+
+  cacheBody.addEventListener('click', async function (e) {
+    const btn = e.target.closest('[data-purge]');
+    if (!btn) return;
+    const vrm = btn.getAttribute('data-purge');
+    await api('/api/admin/cache/' + encodeURIComponent(vrm), { method: 'DELETE' });
+    await Promise.all([loadCache(), loadStats()]);
+  });
+
+  checkSession().catch(function () {
+    show(loginOverlay);
+    hide(dashboard);
+  });
+})();

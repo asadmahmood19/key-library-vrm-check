@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vehicle Lookup</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body class="checker">
+  <main class="checker-main">
+    <section class="credits-block" id="creditsBlock">
+      <p class="credits-label">Vehicle Lookup Credits</p>
+      <p class="credits-value" id="creditsValue">—</p>
+    </section>
+
+    <form class="lookup-form" id="lookupForm">
+      <label for="vrmInput">Registration</label>
+      <div class="row">
+        <input
+          id="vrmInput"
+          name="vrm"
+          type="text"
+          maxlength="10"
+          placeholder="e.g. EA65 AMX"
+          autocomplete="off"
+          required
+        />
+        <button type="submit" id="submitBtn">Check</button>
+      </div>
+    </form>
+
+    <p class="message hidden" id="zeroCreditsMsg">
+      No lookup credits remaining.
+      <a id="buyCreditsLink" href="#" target="_blank" rel="noopener">Buy Credits</a>
+    </p>
+
+    <p class="message error hidden" id="errorMsg"></p>
+    <p class="message loading hidden" id="loadingMsg">Looking up vehicle…</p>
+
+    <section class="result hidden" id="resultPanel"></section>
+
+    <section class="history hidden" id="historyPanel">
+      <h2>Recent lookups</h2>
+      <ul id="historyList"></ul>
+    </section>
+  </main>
+  <script src="/checker.js"></script>
+</body>
+</html>
