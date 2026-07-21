@@ -154,7 +154,7 @@
       creditsValue.textContent = 'Customer not identified';
       submitBtn.disabled = true;
       errorMsg.textContent =
-        'Missing customer_id. Embed this page with ?customer_id={{ customer.id }} from Shopify.';
+        'Something went wrong. Please try again later.';
       show(errorMsg);
       return;
     }
