@@ -1,8 +1,24 @@
 import { Pool } from 'pg';
 import { config } from './config';
 
+function buildConnectionString(url: string): string {
+  try {
+    const u = new URL(url);
+    // Silence pg sslmode deprecation warning on Neon URLs
+    if (!u.searchParams.has('uselibpqcompat')) {
+      u.searchParams.set('uselibpqcompat', 'true');
+    }
+    if (!u.searchParams.get('sslmode')) {
+      u.searchParams.set('sslmode', 'require');
+    }
+    return u.toString();
+  } catch {
+    return url;
+  }
+}
+
 export const pool = new Pool({
-  connectionString: config.databaseUrl,
+  connectionString: buildConnectionString(config.databaseUrl),
   ssl: { rejectUnauthorized: false },
 });
 
