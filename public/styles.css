@@ -32,12 +32,13 @@ body.checker {
   background: transparent;
   min-height: 0;
   font-family: "Roboto", sans-serif;
+  overflow: hidden;
 }
 
 .checker-main {
   max-width: 1125px;
   margin: 50px auto 0;
-  padding: 12px;
+  padding: 12px 12px 24px;
 }
 
 .credits-block {

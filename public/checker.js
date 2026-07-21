@@ -18,12 +18,30 @@
   let buyCreditsUrl = 'https://www.keylibrary.co.uk/';
   let credits = 0;
 
+  function notifyHeight() {
+    if (window.parent === window) return;
+    const height = Math.ceil(
+      Math.max(
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight,
+        document.documentElement.offsetHeight,
+        document.body.offsetHeight
+      )
+    );
+    window.parent.postMessage(
+      { type: 'vrm-check-resize', height: height },
+      '*'
+    );
+  }
+
   function show(el) {
     el.classList.remove('hidden');
+    notifyHeight();
   }
 
   function hide(el) {
     el.classList.add('hidden');
+    notifyHeight();
   }
 
   function setCredits(n) {
@@ -61,6 +79,7 @@
       })
       .join('');
     show(historyPanel);
+    notifyHeight();
   }
 
   function renderResult(data) {
@@ -119,6 +138,7 @@
         ? '<span class="cache-badge">Served from cache (no credit used)</span>'
         : '');
     show(resultPanel);
+    notifyHeight();
   }
 
   function escapeHtml(str) {
@@ -184,4 +204,15 @@
     errorMsg.textContent = err.message || 'Failed to initialise';
     show(errorMsg);
   });
+
+  window.addEventListener('load', notifyHeight);
+  window.addEventListener('resize', notifyHeight);
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(function () {
+      notifyHeight();
+    });
+    ro.observe(document.body);
+  }
+  setTimeout(notifyHeight, 100);
+  setTimeout(notifyHeight, 500);
 })();
