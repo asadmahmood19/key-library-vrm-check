@@ -249,8 +249,20 @@ button.secondary.is-loading .btn-spinner {
 .history-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
+  flex: 1;
+}
+
+.history-vrm {
+  font-size: 1rem;
+}
+
+.history-detail {
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.35;
+  word-break: break-word;
 }
 
 .history-when {
@@ -264,6 +276,21 @@ button.secondary.is-loading .btn-spinner {
   gap: 6px;
   padding: 6px 10px;
   flex-shrink: 0;
+  align-self: center;
+}
+
+@media (max-width: 480px) {
+  .history-item {
+    align-items: flex-start;
+  }
+
+  .history-view {
+    padding: 6px 8px;
+  }
+
+  .history-view span {
+    display: none;
+  }
 }
 
 .history-view svg {
@@ -474,6 +501,25 @@ button.linkish:hover {
 
 .table-wrap {
   overflow-x: auto;
+}
+
+.table-wrap-scroll {
+  max-height: 360px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.table-wrap-scroll table {
+  margin: 0;
+}
+
+.table-wrap-scroll thead th {
+  position: sticky;
+  top: 0;
+  background: var(--white);
+  z-index: 1;
+  box-shadow: 0 1px 0 var(--line);
 }
 
 table {

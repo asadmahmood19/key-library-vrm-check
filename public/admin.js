@@ -50,6 +50,13 @@
     }
   }
 
+  function formatDateOnly(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-GB');
+  }
+
   async function api(path, options) {
     const res = await fetch(path, {
       credentials: 'same-origin',
@@ -134,6 +141,9 @@
           '<td>' +
           escapeHtml(Number(c.total_spend || 0).toFixed(2)) +
           '</td>' +
+          '<td>' +
+          escapeHtml(formatDateOnly(c.updated_at)) +
+          '</td>' +
           '<td class="actions">' +
           '<input class="small" type="number" min="0" value="' +
           escapeHtml(String(c.credits)) +
@@ -158,6 +168,9 @@
         const hasVehicle = !!row.vehicle;
         return (
           '<tr>' +
+          '<td>' +
+          escapeHtml(formatDateOnly(row.created_at)) +
+          '</td>' +
           '<td>' +
           escapeHtml(row.name || '—') +
           '</td>' +
@@ -202,6 +215,9 @@
           '<tr>' +
           '<td>' +
           escapeHtml(row.vrm) +
+          '</td>' +
+          '<td>' +
+          escapeHtml(formatDateOnly(row.fetched_at)) +
           '</td>' +
           '<td>' +
           escapeHtml(String(row.age_days)) +

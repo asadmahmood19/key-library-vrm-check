@@ -79,12 +79,20 @@
     historyList.innerHTML = historyItems
       .map(function (item, index) {
         const canView = item.vehicle ? '' : ' disabled';
+        const v = item.vehicle || {};
+        const detailParts = [v.make, v.model, v.year].filter(function (part) {
+          return part != null && part !== '';
+        });
+        const detailLine = detailParts.length
+          ? '<span class="history-detail">' + escapeHtml(detailParts.join(' · ')) + '</span>'
+          : '';
         return (
           '<li class="history-item">' +
           '<div class="history-meta">' +
-          '<span><strong>' +
+          '<span class="history-vrm"><strong>' +
           escapeHtml(item.vrm) +
           '</strong></span>' +
+          detailLine +
           '</div>' +
           '<button type="button" class="history-view secondary" data-history-index="' +
           index +
