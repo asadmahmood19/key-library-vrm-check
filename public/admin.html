@@ -56,12 +56,12 @@
           <table>
             <thead>
               <tr>
-                <th>Customer ID</th>
+                <th>Name</th>
                 <th>Email</th>
+                <th>Company</th>
                 <th>Credits</th>
                 <th>Spend left (£)</th>
                 <th>Total spend (£)</th>
-                <th>Updated</th>
                 <th></th>
               </tr>
             </thead>
@@ -76,9 +76,13 @@
           <table>
             <thead>
               <tr>
-                <th>When</th>
-                <th>Customer</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Company</th>
                 <th>VRM</th>
+                <th>Make</th>
+                <th>Model</th>
+                <th>Year</th>
                 <th>Cached</th>
               </tr>
             </thead>
@@ -94,7 +98,6 @@
             <thead>
               <tr>
                 <th>VRM</th>
-                <th>Fetched</th>
                 <th>Age (days)</th>
                 <th></th>
               </tr>
@@ -112,6 +115,16 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <div id="lookupModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lookupModalTitle">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="lookupModalTitle">Vehicle details</h2>
+        <button type="button" class="secondary" id="lookupModalClose">Close</button>
+      </div>
+      <div id="lookupModalBody" class="modal-body"></div>
+    </div>
   </div>
   <script src="/admin.js"></script>
 </body>

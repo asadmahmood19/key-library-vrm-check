@@ -1,8 +1,12 @@
 {% if customer and customer.orders_count > 0 %}
+  {% assign vrm_company = '' %}
+  {% if customer.default_address and customer.default_address.company != blank %}
+    {% assign vrm_company = customer.default_address.company %}
+  {% endif %}
   <div class="vrm-check">
     <iframe
       id="vrm-check-iframe"
-      src="https://key-library-vrm-check-theta.vercel.app/?customer_id={{ customer.id }}&email={{ customer.email | url_encode }}"
+      src="https://key-library-vrm-check-theta.vercel.app/?customer_id={{ customer.id }}&email={{ customer.email | url_encode }}&name={{ customer.name | url_encode }}&company={{ vrm_company | url_encode }}"
       width="100%"
       height="400"
       style="border: none; width: 100%; display: block; overflow: hidden;"

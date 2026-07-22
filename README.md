@@ -91,14 +91,16 @@ Recommended event: **Order payment** (`orders/paid`).
 
 ### Rule
 
-**£10 spent = 1 lookup credit**, with **carry-over remainder** across orders.
+**£10 of order subtotal = 1 lookup credit**, with **carry-over remainder** across orders.
+
+Subtotal is used (after discounts), **excluding tax and delivery**.
 
 Only orders on/after **`CREDITS_START_DATE`** (default `2026-07-22`) count.
 
 Example:
 
-| Day | Order | Remainder before | Pooled | Credits added | Remainder after |
-|-----|-------|------------------|--------|---------------|-----------------|
+| Day | Subtotal | Remainder before | Pooled | Credits added | Remainder after |
+|-----|----------|------------------|--------|---------------|-----------------|
 | 1 | £9 | £0 | £9 | 0 | £9 |
 | 2 | £11 | £9 | £20 | 2 | £0 |
 
@@ -113,5 +115,5 @@ Example:
    - `CREDITS_POUNDS_PER_CREDIT` (default `10`)
    - `CREDITS_START_DATE` (default `2026-07-22`)
 
-The endpoint finds the customer, adds the order total to their spend remainder, awards whole credits, keeps leftover spend, and ignores duplicate order deliveries.
+The endpoint finds the customer, adds the order **subtotal** to their spend remainder, awards whole credits, keeps leftover spend, and ignores duplicate order deliveries.
 

@@ -28,6 +28,28 @@
       .replace(/"/g, '&quot;');
   }
 
+  async function withButtonLoading(btn, fn) {
+    if (!btn || btn.dataset.loading === '1') return;
+    const originalHtml = btn.innerHTML;
+    btn.dataset.loading = '1';
+    btn.disabled = true;
+    btn.classList.add('is-loading');
+    btn.setAttribute('aria-busy', 'true');
+    btn.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>';
+    try {
+      return await fn();
+    } finally {
+      btn.dataset.loading = '0';
+      btn.disabled = false;
+      btn.classList.remove('is-loading');
+      btn.removeAttribute('aria-busy');
+      // Skip restore if the button was removed/re-rendered (e.g. table refresh)
+      if (document.body.contains(btn)) {
+        btn.innerHTML = originalHtml;
+      }
+    }
+  }
+
   async function api(path, options) {
     const res = await fetch(path, {
       credentials: 'same-origin',
@@ -95,10 +117,13 @@
         return (
           '<tr>' +
           '<td>' +
-          escapeHtml(c.shopify_customer_id) +
+          escapeHtml(c.name || '—') +
           '</td>' +
           '<td>' +
           escapeHtml(c.email || '—') +
+          '</td>' +
+          '<td>' +
+          escapeHtml(c.company || '—') +
           '</td>' +
           '<td>' +
           escapeHtml(String(c.credits)) +
@@ -108,9 +133,6 @@
           '</td>' +
           '<td>' +
           escapeHtml(Number(c.total_spend || 0).toFixed(2)) +
-          '</td>' +
-          '<td>' +
-          escapeHtml(new Date(c.updated_at).toLocaleString()) +
           '</td>' +
           '<td class="actions">' +
           '<input class="small" type="number" min="0" value="' +
@@ -129,19 +151,39 @@
   }
 
   async function loadLookups() {
-    const data = await api('/api/admin/lookups?limit=50');
-    lookupsBody.innerHTML = data.lookups
-      .map(function (row) {
+    const data = await api('/api/admin/lookups?limit=100');
+    window.__adminLookups = data.lookups || [];
+    lookupsBody.innerHTML = window.__adminLookups
+      .map(function (row, index) {
+        const hasVehicle = !!row.vehicle;
         return (
           '<tr>' +
           '<td>' +
-          escapeHtml(new Date(row.created_at).toLocaleString()) +
+          escapeHtml(row.name || '—') +
           '</td>' +
           '<td>' +
-          escapeHtml(row.shopify_customer_id) +
+          escapeHtml(row.email || '—') +
           '</td>' +
           '<td>' +
-          escapeHtml(row.vrm) +
+          escapeHtml(row.company || '—') +
+          '</td>' +
+          '<td>' +
+          (hasVehicle
+            ? '<button type="button" class="linkish" data-lookup-index="' +
+              index +
+              '">' +
+              escapeHtml(row.vrm) +
+              '</button>'
+            : escapeHtml(row.vrm)) +
+          '</td>' +
+          '<td>' +
+          escapeHtml(row.make || '—') +
+          '</td>' +
+          '<td>' +
+          escapeHtml(row.model || '—') +
+          '</td>' +
+          '<td>' +
+          escapeHtml(row.year == null ? '—' : String(row.year)) +
           '</td>' +
           '<td>' +
           (row.was_cached ? 'Yes' : 'No') +
@@ -162,9 +204,6 @@
           escapeHtml(row.vrm) +
           '</td>' +
           '<td>' +
-          escapeHtml(new Date(row.fetched_at).toLocaleString()) +
-          '</td>' +
-          '<td>' +
           escapeHtml(String(row.age_days)) +
           '</td>' +
           '<td><button type="button" class="secondary" data-purge="' +
@@ -179,14 +218,17 @@
   loginForm.addEventListener('submit', async function (e) {
     e.preventDefault();
     hide(loginError);
+    const btn = loginForm.querySelector('button[type="submit"]');
     try {
-      await api('/api/admin/login', {
-        method: 'POST',
-        body: JSON.stringify({ password: document.getElementById('passwordInput').value }),
+      await withButtonLoading(btn, async function () {
+        await api('/api/admin/login', {
+          method: 'POST',
+          body: JSON.stringify({ password: document.getElementById('passwordInput').value }),
+        });
+        hide(loginOverlay);
+        show(dashboard);
+        await refreshAll();
       });
-      hide(loginOverlay);
-      show(dashboard);
-      await refreshAll();
     } catch (err) {
       loginError.textContent = err.message || 'Login failed';
       show(loginError);
@@ -194,53 +236,147 @@
   });
 
   logoutBtn.addEventListener('click', async function () {
-    await api('/api/admin/logout', { method: 'POST', body: '{}' });
-    show(loginOverlay);
-    hide(dashboard);
+    await withButtonLoading(logoutBtn, async function () {
+      await api('/api/admin/logout', { method: 'POST', body: '{}' });
+      show(loginOverlay);
+      hide(dashboard);
+    });
   });
 
   creditForm.addEventListener('submit', async function (e) {
     e.preventDefault();
+    const btn = creditForm.querySelector('button[type="submit"]');
     const fd = new FormData(creditForm);
-    await api('/api/admin/customers', {
-      method: 'POST',
-      body: JSON.stringify({
-        customer_id: fd.get('customer_id'),
-        email: fd.get('email') || undefined,
-        credits: Number(fd.get('credits')),
-      }),
+    await withButtonLoading(btn, async function () {
+      await api('/api/admin/customers', {
+        method: 'POST',
+        body: JSON.stringify({
+          customer_id: fd.get('customer_id'),
+          email: fd.get('email') || undefined,
+          credits: Number(fd.get('credits')),
+        }),
+      });
+      creditForm.reset();
+      await Promise.all([loadCustomers(), loadStats()]);
     });
-    creditForm.reset();
-    await Promise.all([loadCustomers(), loadStats()]);
   });
 
-  refreshCustomers.addEventListener('click', loadCustomers);
+  refreshCustomers.addEventListener('click', async function () {
+    await withButtonLoading(refreshCustomers, loadCustomers);
+  });
+
   customerSearch.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter') loadCustomers();
+    if (e.key === 'Enter') {
+      withButtonLoading(refreshCustomers, loadCustomers);
+    }
   });
 
   customersBody.addEventListener('click', async function (e) {
     const btn = e.target.closest('[data-save]');
     if (!btn) return;
     const id = btn.getAttribute('data-save');
-    const input = customersBody.querySelector('input[data-id="' + id + '"]');
-    await api('/api/admin/customers/' + encodeURIComponent(id) + '/credits', {
-      method: 'PATCH',
-      body: JSON.stringify({ credits: Number(input.value) }),
+    const input = customersBody.querySelector('input[data-id="' + CSS.escape(id) + '"]');
+    await withButtonLoading(btn, async function () {
+      await api('/api/admin/customers/' + encodeURIComponent(id) + '/credits', {
+        method: 'PATCH',
+        body: JSON.stringify({ credits: Number(input.value) }),
+      });
+      await Promise.all([loadCustomers(), loadStats()]);
     });
-    await Promise.all([loadCustomers(), loadStats()]);
   });
 
   cacheBody.addEventListener('click', async function (e) {
     const btn = e.target.closest('[data-purge]');
     if (!btn) return;
     const vrm = btn.getAttribute('data-purge');
-    await api('/api/admin/cache/' + encodeURIComponent(vrm), { method: 'DELETE' });
-    await Promise.all([loadCache(), loadStats()]);
+    await withButtonLoading(btn, async function () {
+      await api('/api/admin/cache/' + encodeURIComponent(vrm), { method: 'DELETE' });
+      await Promise.all([loadCache(), loadStats()]);
+    });
+  });
+
+  document.querySelectorAll('a.button[href^="/api/admin/export/"]').forEach(function (link) {
+    link.addEventListener('click', function () {
+      if (link.dataset.loading === '1') return;
+      const originalHtml = link.innerHTML;
+      link.dataset.loading = '1';
+      link.classList.add('is-loading');
+      link.innerHTML = '<span class="btn-spinner" aria-hidden="true"></span>';
+      setTimeout(function () {
+        link.dataset.loading = '0';
+        link.classList.remove('is-loading');
+        link.innerHTML = originalHtml;
+      }, 1500);
+    });
   });
 
   checkSession().catch(function () {
     show(loginOverlay);
     hide(dashboard);
+  });
+
+  const lookupModal = document.getElementById('lookupModal');
+  const lookupModalBody = document.getElementById('lookupModalBody');
+  const lookupModalTitle = document.getElementById('lookupModalTitle');
+  const lookupModalClose = document.getElementById('lookupModalClose');
+
+  function openLookupModal(row) {
+    const v = row.vehicle;
+    if (!v) return;
+    lookupModalTitle.textContent = 'VRM ' + (v.vrm || row.vrm);
+    const fields = [
+      ['Name', row.name],
+      ['Email', row.email],
+      ['Company', row.company],
+      ['Registration', v.vrm],
+      ['VIN', v.vin || v.vinLast5],
+      ['Make', v.make],
+      ['Model', v.model],
+      ['Year', v.year],
+      ['Fuel Type', v.fuel],
+      ['Colour', v.colour],
+      ['Engine Capacity', v.engineCc],
+      ['Date First Registered', v.dateFirstRegistered],
+      ['Tax Status', v.taxStatus],
+      ['Tax Due Date', v.taxDueDate],
+      ['Cached lookup', row.was_cached ? 'Yes' : 'No'],
+    ];
+    lookupModalBody.innerHTML =
+      '<dl class="modal-dl">' +
+      fields
+        .map(function (pair) {
+          return (
+            '<dt>' +
+            escapeHtml(String(pair[0])) +
+            '</dt><dd>' +
+            escapeHtml(pair[1] == null || pair[1] === '' ? '—' : String(pair[1])) +
+            '</dd>'
+          );
+        })
+        .join('') +
+      '</dl>';
+    show(lookupModal);
+  }
+
+  function closeLookupModal() {
+    hide(lookupModal);
+  }
+
+  lookupsBody.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-lookup-index]');
+    if (!btn) return;
+    const index = Number(btn.getAttribute('data-lookup-index'));
+    const row = (window.__adminLookups || [])[index];
+    if (row) openLookupModal(row);
+  });
+
+  lookupModalClose.addEventListener('click', closeLookupModal);
+  lookupModal.addEventListener('click', function (e) {
+    if (e.target === lookupModal) closeLookupModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !lookupModal.classList.contains('hidden')) {
+      closeLookupModal();
+    }
   });
 })();

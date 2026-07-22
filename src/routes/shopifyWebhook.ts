@@ -10,6 +10,9 @@ interface ShopifyOrder {
   name?: string;
   email?: string | null;
   currency?: string;
+  /** Line items after discounts, before shipping/tax */
+  subtotal_price?: string | number;
+  current_subtotal_price?: string | number;
   total_price?: string | number;
   current_total_price?: string | number;
   created_at?: string;
@@ -17,6 +20,11 @@ interface ShopifyOrder {
   customer?: {
     id?: number | string;
     email?: string | null;
+    first_name?: string | null;
+    last_name?: string | null;
+    default_address?: {
+      company?: string | null;
+    } | null;
   } | null;
 }
 
@@ -31,8 +39,14 @@ function log(event: string, data: Record<string, unknown> = {}): void {
   );
 }
 
-function orderTotal(order: ShopifyOrder): number {
-  const raw = order.current_total_price ?? order.total_price ?? 0;
+/** Use subtotal only (excludes tax + delivery). */
+function orderSubtotal(order: ShopifyOrder): number {
+  const raw =
+    order.current_subtotal_price ??
+    order.subtotal_price ??
+    order.current_total_price ??
+    order.total_price ??
+    0;
   return Math.max(0, Number(raw) || 0);
 }
 
@@ -88,7 +102,12 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
 
     const customerId = order.customer?.id != null ? String(order.customer.id) : '';
     const email = order.customer?.email || order.email || null;
-    const total = orderTotal(order);
+    const name = [order.customer?.first_name, order.customer?.last_name]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || null;
+    const company = order.customer?.default_address?.company || null;
+    const subtotal = orderSubtotal(order);
     const orderDay = orderDateKey(order);
 
     log('parsed', {
@@ -97,7 +116,8 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       topic,
       customerId: customerId || null,
       email,
-      orderTotal: total,
+      orderSubtotal: subtotal,
+      orderTotalPaid: Number(order.current_total_price ?? order.total_price ?? 0) || 0,
       orderDate: orderDay,
       currency: order.currency || null,
       creditsStartDate: config.creditsStartDate,
@@ -112,7 +132,7 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
         orderDate: orderDay,
         creditsStartDate: config.creditsStartDate,
         customerId: customerId || null,
-        orderTotal: total,
+        orderSubtotal: subtotal,
       });
       await query(
         `INSERT INTO processed_orders (shopify_order_id, shopify_customer_id, credits_added, note)
@@ -141,7 +161,7 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
         orderId,
         orderName,
         topic,
-        orderTotal: total,
+        orderSubtotal: subtotal,
       });
       await query(
         `INSERT INTO processed_orders (shopify_order_id, shopify_customer_id, credits_added, note)
@@ -158,10 +178,10 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       orderName,
       customerId,
       email,
-      orderTotal: total,
+      orderSubtotal: subtotal,
     });
 
-    const result = await applyOrderSpend(customerId, total, email);
+    const result = await applyOrderSpend(customerId, subtotal, { email, name, company });
 
     await query(
       `INSERT INTO processed_orders (shopify_order_id, shopify_customer_id, credits_added, note)
@@ -171,7 +191,7 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
         orderId,
         customerId,
         result.creditsAdded,
-        `Order ${order.name || orderId}; £${total.toFixed(2)} + remainder £${result.previousRemainder.toFixed(2)} = £${result.pooledSpend.toFixed(2)} → ${result.creditsAdded} credits, leftover £${result.newRemainder.toFixed(2)}; topic=${topic || 'n/a'}`,
+        `Order ${order.name || orderId}; subtotal £${subtotal.toFixed(2)} + remainder £${result.previousRemainder.toFixed(2)} = £${result.pooledSpend.toFixed(2)} → ${result.creditsAdded} credits, leftover £${result.newRemainder.toFixed(2)}; topic=${topic || 'n/a'}`,
       ]
     );
 
@@ -180,7 +200,7 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       orderName,
       customerId,
       email,
-      orderTotal: total,
+      orderSubtotal: subtotal,
       orderDate: orderDay,
       previousRemainder: result.previousRemainder,
       pooledSpend: result.pooledSpend,
@@ -195,7 +215,7 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       ok: true,
       orderId,
       customerId,
-      orderTotal: total,
+      orderSubtotal: subtotal,
       orderDate: orderDay,
       poundsPerCredit: config.creditsPoundsPerCredit,
       previousRemainder: result.previousRemainder,

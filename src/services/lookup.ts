@@ -1,6 +1,6 @@
 import { query } from '../db';
 import { getFreshCache, fetchVehicleFromApi, upsertCache } from './cache';
-import { deductOneCredit, upsertCustomer } from './credits';
+import { CustomerProfile, deductOneCredit, upsertCustomer } from './credits';
 import { summarizeVehicle, VehicleSummary } from './vehicleApi';
 import { isValidVrm, normalizeVrm } from '../utils/vrm';
 
@@ -11,6 +11,9 @@ export interface LookupRow {
   was_cached: boolean;
   payload: Record<string, unknown> | null;
   created_at: Date;
+  email?: string | null;
+  name?: string | null;
+  company?: string | null;
 }
 
 export class LookupError extends Error {
@@ -24,14 +27,14 @@ export class LookupError extends Error {
 export async function performLookup(
   shopifyCustomerId: string,
   rawVrm: string,
-  email?: string | null
+  profile?: CustomerProfile | string | null
 ): Promise<{ vehicle: VehicleSummary; fromCache: boolean; creditsRemaining: number }> {
   const vrm = normalizeVrm(rawVrm);
   if (!isValidVrm(vrm)) {
     throw new LookupError('Invalid registration number');
   }
 
-  const customer = await upsertCustomer(shopifyCustomerId, email);
+  const customer = await upsertCustomer(shopifyCustomerId, profile);
   const cached = await getFreshCache(vrm);
 
   if (cached) {
@@ -109,13 +112,34 @@ export async function recentLookups(
   }));
 }
 
-export async function listLookups(limit = 50, offset = 0): Promise<LookupRow[]> {
+export async function listLookups(limit = 50, offset = 0): Promise<
+  Array<
+    LookupRow & {
+      vehicle: VehicleSummary | null;
+    }
+  >
+> {
   const { rows } = await query<LookupRow>(
-    `SELECT id, shopify_customer_id, vrm, was_cached, payload, created_at
-     FROM lookups
-     ORDER BY created_at DESC
+    `SELECT
+       l.id,
+       l.shopify_customer_id,
+       l.vrm,
+       l.was_cached,
+       l.payload,
+       l.created_at,
+       c.email,
+       c.name,
+       c.company
+     FROM lookups l
+     LEFT JOIN customers c ON c.shopify_customer_id = l.shopify_customer_id
+     ORDER BY l.created_at DESC
      LIMIT $1 OFFSET $2`,
     [limit, offset]
   );
-  return rows;
+
+  return rows.map((row) => ({
+    ...row,
+    id: String(row.id),
+    vehicle: row.payload ? summarizeVehicle(row.payload, row.vrm) : null,
+  }));
 }

@@ -2,6 +2,8 @@
   const params = new URLSearchParams(window.location.search);
   const customerId = params.get('customer_id') || '';
   const email = params.get('email') || '';
+  const name = params.get('name') || '';
+  const company = params.get('company') || '';
 
   const creditsValue = document.getElementById('creditsValue');
   const submitBtn = document.getElementById('submitBtn');
@@ -17,6 +19,7 @@
 
   let buyCreditsUrl = 'https://www.keylibrary.co.uk/';
   let credits = 0;
+  let historyItems = [];
 
   function notifyHeight() {
     if (window.parent === window) return;
@@ -58,23 +61,43 @@
     }
   }
 
+  function profilePayload() {
+    return {
+      customer_id: customerId,
+      email: email || undefined,
+      name: name || undefined,
+      company: company || undefined,
+    };
+  }
+
   function renderHistory(items) {
-    if (!items || !items.length) {
+    historyItems = items || [];
+    if (!historyItems.length) {
       hide(historyPanel);
       return;
     }
-    historyList.innerHTML = items
-      .map(function (item) {
-        const when = new Date(item.created_at).toLocaleString();
-        const tag = item.was_cached ? 'cached' : 'live';
+    historyList.innerHTML = historyItems
+      .map(function (item, index) {
+        const canView = item.vehicle ? '' : ' disabled';
         return (
-          '<li><span><strong>' +
+          '<li class="history-item">' +
+          '<div class="history-meta">' +
+          '<span><strong>' +
           escapeHtml(item.vrm) +
-          '</strong> · ' +
-          tag +
-          '</span><span>' +
-          escapeHtml(when) +
-          '</span></li>'
+          '</strong></span>' +
+          '</div>' +
+          '<button type="button" class="history-view secondary" data-history-index="' +
+          index +
+          '"' +
+          canView +
+          ' title="View this lookup" aria-label="View lookup">' +
+          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+          '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>' +
+          '<circle cx="12" cy="12" r="3"/>' +
+          '</svg>' +
+          '<span>View</span>' +
+          '</button>' +
+          '</li>'
         );
       })
       .join('');
@@ -82,8 +105,10 @@
     notifyHeight();
   }
 
-  function renderResult(data) {
+  function renderResult(data, options) {
     const v = data.vehicle;
+    if (!v) return;
+    const opts = options || {};
     const display = function (value) {
       return value == null || value === '' ? '—' : String(value);
     };
@@ -131,13 +156,17 @@
       ['Tax Due Date', v.taxDueDate],
     ];
 
+    let badge = '';
+    if (opts.savedView) {
+      badge = '<span class="cache-badge">Viewing saved lookup (no credit used)</span>';
+    } else if (data.fromCache) {
+      badge = '<span class="cache-badge">Served from cache (no credit used)</span>';
+    }
+
     resultPanel.innerHTML =
-      section('Summary', summary) +
-      section('More Information', more) +
-      (data.fromCache
-        ? '<span class="cache-badge">Served from cache (no credit used)</span>'
-        : '');
+      section('Summary', summary) + section('More Information', more) + badge;
     show(resultPanel);
+    resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     notifyHeight();
   }
 
@@ -153,14 +182,15 @@
     if (!customerId) {
       creditsValue.textContent = 'Customer not identified';
       submitBtn.disabled = true;
-      errorMsg.textContent =
-        'Something went wrong. Please try again later.';
+      errorMsg.textContent = 'Something went wrong. Please try again later.';
       show(errorMsg);
       return;
     }
 
     const qs = new URLSearchParams({ customer_id: customerId });
     if (email) qs.set('email', email);
+    if (name) qs.set('name', name);
+    if (company) qs.set('company', company);
     const res = await fetch('/api/credits?' + qs.toString());
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to load credits');
@@ -168,6 +198,16 @@
     setCredits(data.credits);
     renderHistory(data.history);
   }
+
+  historyList.addEventListener('click', function (e) {
+    const btn = e.target.closest('[data-history-index]');
+    if (!btn || btn.disabled) return;
+    const index = Number(btn.getAttribute('data-history-index'));
+    const item = historyItems[index];
+    if (!item || !item.vehicle) return;
+    hide(errorMsg);
+    renderResult({ vehicle: item.vehicle, fromCache: true }, { savedView: true });
+  });
 
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -181,8 +221,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_id: customerId,
-          email: email || undefined,
+          ...profilePayload(),
           vrm: vrmInput.value,
         }),
       });

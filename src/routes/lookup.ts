@@ -7,6 +7,8 @@ lookupRouter.post('/', async (req, res) => {
   try {
     const customerId = String(req.body.customer_id || req.query.customer_id || '').trim();
     const email = req.body.email ? String(req.body.email).trim() : null;
+    const name = req.body.name ? String(req.body.name).trim() : null;
+    const company = req.body.company ? String(req.body.company).trim() : null;
     const vrm = String(req.body.vrm || '').trim();
 
     if (!customerId) {
@@ -18,7 +20,7 @@ lookupRouter.post('/', async (req, res) => {
       return;
     }
 
-    const result = await performLookup(customerId, vrm, email);
+    const result = await performLookup(customerId, vrm, { email, name, company });
     res.json(result);
   } catch (err) {
     if (err instanceof LookupError) {

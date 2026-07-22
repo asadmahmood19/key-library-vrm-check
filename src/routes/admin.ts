@@ -138,9 +138,16 @@ adminRouter.get('/lookups', async (req, res) => {
       lookups: lookups.map((row) => ({
         id: String(row.id),
         shopify_customer_id: row.shopify_customer_id,
+        name: row.name || null,
+        email: row.email || null,
+        company: row.company || null,
         vrm: row.vrm,
         was_cached: row.was_cached,
         created_at: row.created_at,
+        make: row.vehicle?.make || null,
+        model: row.vehicle?.model || null,
+        year: row.vehicle?.year || null,
+        vehicle: row.vehicle,
       })),
     });
   } catch (err) {
@@ -201,13 +208,15 @@ adminRouter.get('/export/:type', async (req, res) => {
         credits: number;
         created_at: Date;
         updated_at: Date;
-      }>(`SELECT shopify_customer_id, email, credits, created_at, updated_at FROM customers ORDER BY updated_at DESC`);
-      const header = 'shopify_customer_id,email,credits,created_at,updated_at\n';
+      }>(`SELECT shopify_customer_id, email, name, company, credits, created_at, updated_at FROM customers ORDER BY updated_at DESC`);
+      const header = 'shopify_customer_id,email,name,company,credits,created_at,updated_at\n';
       const body = rows
         .map((r) =>
           [
             r.shopify_customer_id,
             csvEscape(r.email || ''),
+            csvEscape((r as { name?: string | null }).name || ''),
+            csvEscape((r as { company?: string | null }).company || ''),
             r.credits,
             r.created_at.toISOString(),
             r.updated_at.toISOString(),
