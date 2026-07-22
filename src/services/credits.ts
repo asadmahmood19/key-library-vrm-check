@@ -70,6 +70,41 @@ export async function getCustomer(shopifyCustomerId: string): Promise<Customer |
   return rows[0] ? mapCustomer(rows[0]) : null;
 }
 
+export async function getCustomerByEmail(email: string): Promise<Customer | null> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return null;
+  const { rows } = await query<Customer>(
+    `SELECT * FROM customers
+     WHERE LOWER(TRIM(email)) = $1
+     ORDER BY updated_at DESC
+     LIMIT 1`,
+    [normalized]
+  );
+  return rows[0] ? mapCustomer(rows[0]) : null;
+}
+
+/** Set credits for an existing customer found by email. */
+export async function setCreditsByEmail(
+  email: string,
+  credits: number
+): Promise<Customer> {
+  if (credits < 0) throw new Error('Credits cannot be negative');
+  const existing = await getCustomerByEmail(email);
+  if (!existing) {
+    throw new Error('No customer found with that email. They must visit the checker or place an order first.');
+  }
+  const { rows } = await query<Customer>(
+    `UPDATE customers
+     SET credits = $2,
+         email = COALESCE(email, $3),
+         updated_at = NOW()
+     WHERE shopify_customer_id = $1
+     RETURNING *`,
+    [existing.shopify_customer_id, Math.floor(credits), email.trim()]
+  );
+  return mapCustomer(rows[0]);
+}
+
 export async function setCredits(
   shopifyCustomerId: string,
   credits: number,

@@ -263,18 +263,21 @@
     e.preventDefault();
     const btn = creditForm.querySelector('button[type="submit"]');
     const fd = new FormData(creditForm);
-    await withButtonLoading(btn, async function () {
-      await api('/api/admin/customers', {
-        method: 'POST',
-        body: JSON.stringify({
-          customer_id: fd.get('customer_id'),
-          email: fd.get('email') || undefined,
-          credits: Number(fd.get('credits')),
-        }),
+    try {
+      await withButtonLoading(btn, async function () {
+        await api('/api/admin/customers', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: fd.get('email'),
+            credits: Number(fd.get('credits')),
+          }),
+        });
+        creditForm.reset();
+        await Promise.all([loadCustomers(), loadStats()]);
       });
-      creditForm.reset();
-      await Promise.all([loadCustomers(), loadStats()]);
-    });
+    } catch (err) {
+      alert(err.message || 'Failed to set credits');
+    }
   });
 
   refreshCustomers.addEventListener('click', async function () {

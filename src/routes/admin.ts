@@ -6,6 +6,7 @@ import {
   adjustCredits,
   listCustomers,
   setCredits,
+  setCreditsByEmail,
   upsertCustomer,
 } from '../services/credits';
 import { listLookups } from '../services/lookup';
@@ -79,12 +80,11 @@ adminRouter.get('/customers', async (req, res) => {
 
 adminRouter.post('/customers', async (req, res) => {
   try {
-    const customerId = String(req.body.customer_id || '').trim();
-    const email = req.body.email ? String(req.body.email).trim() : null;
+    const email = req.body.email ? String(req.body.email).trim() : '';
     const credits = Number(req.body.credits);
 
-    if (!customerId) {
-      res.status(400).json({ error: 'customer_id is required' });
+    if (!email) {
+      res.status(400).json({ error: 'email is required' });
       return;
     }
     if (!Number.isFinite(credits) || credits < 0) {
@@ -92,11 +92,13 @@ adminRouter.post('/customers', async (req, res) => {
       return;
     }
 
-    const customer = await setCredits(customerId, Math.floor(credits), email);
+    const customer = await setCreditsByEmail(email, Math.floor(credits));
     res.json({ customer });
   } catch (err) {
-    console.error('POST /api/admin/customers', err);
-    res.status(500).json({ error: 'Failed to set credits' });
+    const message = err instanceof Error ? err.message : 'Failed to set credits';
+    const status = message.includes('No customer found') ? 404 : 500;
+    if (status === 500) console.error('POST /api/admin/customers', err);
+    res.status(status).json({ error: message });
   }
 });
 
