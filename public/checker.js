@@ -84,7 +84,7 @@
           return part != null && part !== '';
         });
         const detailLine = detailParts.length
-          ? '<span class="history-detail">' + escapeHtml(detailParts.join(' <br /> ')) + '</span>'
+          ? '<span class="history-detail">' + detailParts.map(escapeHtml).join('<br />') + '</span>'
           : '';
         return (
           '<li class="history-item">' +
