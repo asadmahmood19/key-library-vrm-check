@@ -413,6 +413,12 @@ body.checker .modal-overlay {
   box-shadow: 0 0 0 1px rgba(255, 255, 255, .15), 0 20px 50px rgb(241 92 46 / 42%), 0 10px 100px rgb(241 92 46 / 32%) !important;
 }
 /* —— Admin —— */
+
+td.actions {
+  display: flex;
+  gap: 2px;
+}
+
 .login-overlay {
   position: fixed;
   inset: 0;
@@ -578,8 +584,8 @@ td .actions {
 }
 
 td input.small {
-  width: 72px;
-  padding: 6px 8px;
+  width: 50px;
+  padding: 6px;
 }
 
 @media (max-width: 640px) {
