@@ -395,6 +395,7 @@ button.linkish:hover {
 
 body.checker .modal-overlay {
   z-index: 50;
+  background: transparent;
 }
 
 @media (max-width: 640px) {
