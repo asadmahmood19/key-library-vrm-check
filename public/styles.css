@@ -350,9 +350,25 @@ button.linkish:hover {
   border-bottom: 1px solid var(--line);
 }
 
+.modal-title-group {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  min-width: 0;
+  flex: 1;
+}
+
 .modal-header h2 {
   margin: 0;
   font-size: 1.1rem;
+}
+
+.modal-title-group .cache-badge {
+  margin: 0;
+  font-size: 0.8rem;
+  white-space: normal;
 }
 
 .modal-body {

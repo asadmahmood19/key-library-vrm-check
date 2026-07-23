@@ -189,20 +189,22 @@
   const lookupModal = document.getElementById('lookupModal');
   const lookupModalBody = document.getElementById('lookupModalBody');
   const lookupModalTitle = document.getElementById('lookupModalTitle');
+  const lookupModalBadge = document.getElementById('lookupModalBadge');
   const lookupModalClose = document.getElementById('lookupModalClose');
 
   function openHistoryModal(vehicle) {
     if (!vehicle) return;
     lookupModalTitle.textContent = 'VRM ' + (vehicle.vrm || '');
-    lookupModalBody.innerHTML = buildResultSections(
-      vehicle,
-      '<span class="cache-badge">Viewing saved lookup (no credit used)</span>'
-    );
+    lookupModalBadge.textContent = 'Viewing saved lookup (no credit used)';
+    lookupModalBadge.classList.remove('hidden');
+    lookupModalBody.innerHTML = buildResultSections(vehicle);
     show(lookupModal);
   }
 
   function closeHistoryModal() {
     hide(lookupModal);
+    lookupModalBadge.classList.add('hidden');
+    lookupModalBadge.textContent = '';
   }
 
   function escapeHtml(str) {
