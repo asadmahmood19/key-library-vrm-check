@@ -456,6 +456,8 @@ body.checker .modal-overlay {
 
   .modal-card {
     max-height: 85vh;
+    bottom: 250px;
+    position: relative;
   }
 }
 
