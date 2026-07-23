@@ -333,7 +333,7 @@ button.linkish:hover {
 
 .modal-card {
   width: 100%;
-  max-width: 560px;
+  max-width: 650px;
   max-height: 90vh;
   overflow: auto;
   background: var(--white);
@@ -359,6 +359,23 @@ button.linkish:hover {
   padding: 16px 18px 20px;
 }
 
+.modal-body .result-section {
+  margin-bottom: 18px;
+}
+
+.modal-body .result-section:last-of-type {
+  margin-bottom: 10px;
+}
+
+.modal-body .result-section h2 {
+  font-size: 1.05rem;
+}
+
+.modal-body .cache-badge {
+  display: inline-block;
+  margin-top: 4px;
+}
+
 .modal-dl {
   display: grid;
   grid-template-columns: 160px 1fr;
@@ -376,9 +393,17 @@ button.linkish:hover {
   font-weight: 600;
 }
 
+body.checker .modal-overlay {
+  z-index: 50;
+}
+
 @media (max-width: 640px) {
   .modal-dl {
     grid-template-columns: 1fr;
+  }
+
+  .modal-card {
+    max-height: 85vh;
   }
 }
 

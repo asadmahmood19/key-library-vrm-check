@@ -113,10 +113,7 @@
     notifyHeight();
   }
 
-  function renderResult(data, options) {
-    const v = data.vehicle;
-    if (!v) return;
-    const opts = options || {};
+  function buildResultSections(v, badgeHtml) {
     const display = function (value) {
       return value == null || value === '' ? '—' : String(value);
     };
@@ -164,6 +161,18 @@
       ['Tax Due Date', v.taxDueDate],
     ];
 
+    return (
+      section('Summary', summary) +
+      section('More Information', more) +
+      (badgeHtml || '')
+    );
+  }
+
+  function renderResult(data, options) {
+    const v = data.vehicle;
+    if (!v) return;
+    const opts = options || {};
+
     let badge = '';
     if (opts.savedView) {
       badge = '<span class="cache-badge">Viewing saved lookup (no credit used)</span>';
@@ -171,11 +180,29 @@
       badge = '<span class="cache-badge">Served from cache (no credit used)</span>';
     }
 
-    resultPanel.innerHTML =
-      section('Summary', summary) + section('More Information', more) + badge;
+    resultPanel.innerHTML = buildResultSections(v, badge);
     show(resultPanel);
     resultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     notifyHeight();
+  }
+
+  const lookupModal = document.getElementById('lookupModal');
+  const lookupModalBody = document.getElementById('lookupModalBody');
+  const lookupModalTitle = document.getElementById('lookupModalTitle');
+  const lookupModalClose = document.getElementById('lookupModalClose');
+
+  function openHistoryModal(vehicle) {
+    if (!vehicle) return;
+    lookupModalTitle.textContent = 'VRM ' + (vehicle.vrm || '');
+    lookupModalBody.innerHTML = buildResultSections(
+      vehicle,
+      '<span class="cache-badge">Viewing saved lookup (no credit used)</span>'
+    );
+    show(lookupModal);
+  }
+
+  function closeHistoryModal() {
+    hide(lookupModal);
   }
 
   function escapeHtml(str) {
@@ -214,7 +241,17 @@
     const item = historyItems[index];
     if (!item || !item.vehicle) return;
     hide(errorMsg);
-    renderResult({ vehicle: item.vehicle, fromCache: true }, { savedView: true });
+    openHistoryModal(item.vehicle);
+  });
+
+  lookupModalClose.addEventListener('click', closeHistoryModal);
+  lookupModal.addEventListener('click', function (e) {
+    if (e.target === lookupModal) closeHistoryModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !lookupModal.classList.contains('hidden')) {
+      closeHistoryModal();
+    }
   });
 
   form.addEventListener('submit', async function (e) {

@@ -342,38 +342,58 @@
   function openLookupModal(row) {
     const v = row.vehicle;
     if (!v) return;
+    const display = function (value) {
+      return value == null || value === '' ? '—' : String(value);
+    };
+    function section(title, rows) {
+      return (
+        '<div class="result-section">' +
+        '<h2>' +
+        escapeHtml(title) +
+        '</h2>' +
+        '<table class="result-table">' +
+        '<tbody>' +
+        rows
+          .map(function (pair) {
+            return (
+              '<tr>' +
+              '<td class="label">' +
+              escapeHtml(pair[0]) +
+              '</td>' +
+              '<td class="value">' +
+              escapeHtml(display(pair[1])) +
+              '</td>' +
+              '</tr>'
+            );
+          })
+          .join('') +
+        '</tbody></table></div>'
+      );
+    }
+
     lookupModalTitle.textContent = 'VRM ' + (v.vrm || row.vrm);
-    const fields = [
-      ['Name', row.name],
-      ['Email', row.email],
-      ['Company', row.company],
-      ['Registration', v.vrm],
-      ['VIN', v.vin || v.vinLast5],
-      ['Make', v.make],
-      ['Model', v.model],
-      ['Year', v.year],
-      ['Fuel Type', v.fuel],
-      ['Colour', v.colour],
-      ['Engine Capacity', v.engineCc],
-      ['Date First Registered', v.dateFirstRegistered],
-      ['Tax Status', v.taxStatus],
-      ['Tax Due Date', v.taxDueDate],
-      ['Cached lookup', row.was_cached ? 'Yes' : 'No'],
-    ];
     lookupModalBody.innerHTML =
-      '<dl class="modal-dl">' +
-      fields
-        .map(function (pair) {
-          return (
-            '<dt>' +
-            escapeHtml(String(pair[0])) +
-            '</dt><dd>' +
-            escapeHtml(pair[1] == null || pair[1] === '' ? '—' : String(pair[1])) +
-            '</dd>'
-          );
-        })
-        .join('') +
-      '</dl>';
+      section('Customer', [
+        ['Name', row.name],
+        ['Email', row.email],
+        ['Company', row.company],
+      ]) +
+      section('Summary', [
+        ['Registration Number', v.vrm],
+        ['VIN', v.vin || v.vinLast5],
+        ['Make', v.make],
+        ['Model', v.model],
+        ['Year', v.year],
+      ]) +
+      section('More Information', [
+        ['Fuel Type', v.fuel],
+        ['Colour', v.colour],
+        ['Engine Capacity', v.engineCc],
+        ['Date First Registered', v.dateFirstRegistered],
+        ['Tax Status', v.taxStatus],
+        ['Tax Due Date', v.taxDueDate],
+        ['Cached lookup', row.was_cached ? 'Yes' : 'No'],
+      ]);
     show(lookupModal);
   }
 
