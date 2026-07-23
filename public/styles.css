@@ -417,7 +417,9 @@ body.checker .modal-overlay {
       rgba(255,255,255,.45) 15%,
       transparent 24%), rgb(28 27 25 / 25%);
 }
-
+#lookupModal .modal-card {
+  border: 2px solid #f15c2e;
+}
 @media (max-width: 640px) {
   .modal-dl {
     grid-template-columns: 1fr;
