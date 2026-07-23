@@ -395,7 +395,27 @@ button.linkish:hover {
 
 body.checker .modal-overlay {
   z-index: 50;
-  background: transparent;
+  background:
+  linear-gradient(to right,
+      #fff 0,
+      rgba(255,255,255,.9) 8%,
+      rgba(255,255,255,.45) 15%,
+      transparent 24%),
+  linear-gradient(to left,
+      #fff 0,
+      rgba(255,255,255,.9) 8%,
+      rgba(255,255,255,.45) 15%,
+      transparent 24%),
+  linear-gradient(to bottom,
+      #fff 0,
+      rgba(255,255,255,.9) 8%,
+      rgba(255,255,255,.45) 15%,
+      transparent 24%),
+  linear-gradient(to top,
+      #fff 0,
+      rgba(255,255,255,.9) 8%,
+      rgba(255,255,255,.45) 15%,
+      transparent 24%), rgb(28 27 25 / 25%);
 }
 
 @media (max-width: 640px) {
@@ -407,11 +427,7 @@ body.checker .modal-overlay {
     max-height: 85vh;
   }
 }
-.checker .modal-card{
-  border: 2px solid #f15c2e !important;
-  background: rgb(255 248 246) !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .15), 0 20px 50px rgb(241 92 46 / 42%), 0 10px 100px rgb(241 92 46 / 14%) !important;
-}
+
 /* —— Admin —— */
 
 td.actions {
