@@ -477,6 +477,11 @@ button.linkish:hover {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 
+#howItWorksModal .modal-card {
+  box-shadow: unset;
+  border: 2px solid #f15c2e;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
