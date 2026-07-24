@@ -11,10 +11,13 @@
 </head>
 <body class="checker">
   <main class="checker-main">
-    <section class="credits-block" id="creditsBlock">
-      <p class="credits-label">Vehicle Lookup Credits</p>
-      <p class="credits-value" id="creditsValue">—</p>
-    </section>
+    <div class="checker-top">
+      <section class="credits-block" id="creditsBlock">
+        <p class="credits-label">Vehicle Lookup Credits</p>
+        <p class="credits-value" id="creditsValue">—</p>
+      </section>
+      <button type="button" id="howItWorksBtn" class="how-it-works-btn">How it works?</button>
+    </div>
 
     <form class="lookup-form" id="lookupForm">
       <label for="vrmInput">Registration</label>
@@ -47,6 +50,53 @@
       <ul id="historyList"></ul>
     </section>
   </main>
+
+  <div id="howItWorksModal" class="modal-overlay how-it-works-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="howItWorksTitle">
+    <div class="modal-card how-it-works-card">
+      <div class="modal-header">
+        <h2 id="howItWorksTitle">How it works</h2>
+        <button type="button" class="secondary" id="howItWorksClose">Close</button>
+      </div>
+      <div class="modal-body how-it-works-body">
+        <div class="how-it-works-highlight">
+          <span class="how-it-works-rate">£10 spent = 1 lookup credit</span>
+        </div>
+
+        <div class="how-it-works-section">
+          <h3>Earning credits</h3>
+          <p>
+            Credits are calculated <strong>per order</strong> only — leftover spend does not carry
+            over. Example: a <strong>£15</strong> order awards <strong>1 credit</strong>; the remaining
+            <strong>£5</strong> is not saved for the next order.
+          </p>
+          <p>
+            Orders under <strong>£10</strong> award no credits. A <strong>£20</strong> order awards
+            <strong>2 credits</strong>.
+          </p>
+        </div>
+
+        <div class="how-it-works-section">
+          <h3>Using credits</h3>
+          <p>
+            Each live registration lookup uses <strong>1 credit</strong>. If you have already looked up that
+            plate recently (within 7 days), it’s served from cache and doesn’t use a credit.
+          </p>
+          <p>
+            You can check your remaining credits on this Registration Check page when logged in.
+          </p>
+        </div>
+
+        <div class="how-it-works-actions">
+          <a
+            class="button"
+            href="https://www.keylibrary.co.uk/"
+            target="_blank"
+            rel="noopener"
+          >Buy Credits</a>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="/checker.js"></script>
 </body>

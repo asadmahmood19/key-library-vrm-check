@@ -16,6 +16,9 @@
   const historyList = document.getElementById('historyList');
   const form = document.getElementById('lookupForm');
   const vrmInput = document.getElementById('vrmInput');
+  const howItWorksBtn = document.getElementById('howItWorksBtn');
+  const howItWorksModal = document.getElementById('howItWorksModal');
+  const howItWorksClose = document.getElementById('howItWorksClose');
 
   let buyCreditsUrl = 'https://www.keylibrary.co.uk/';
   let credits = 0;
@@ -237,6 +240,26 @@
     setCredits(data.credits);
     renderHistory(data.history);
   }
+
+  function openHowItWorks() {
+    howItWorksModal.classList.remove('hidden');
+    howItWorksClose.focus();
+  }
+
+  function closeHowItWorks() {
+    if (howItWorksModal.classList.contains('hidden')) return;
+    howItWorksModal.classList.add('hidden');
+    howItWorksBtn.focus();
+  }
+
+  howItWorksBtn.addEventListener('click', openHowItWorks);
+  howItWorksClose.addEventListener('click', closeHowItWorks);
+  howItWorksModal.addEventListener('click', function (e) {
+    if (e.target === howItWorksModal) closeHowItWorks();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeHowItWorks();
+  });
 
   historyList.addEventListener('click', function (e) {
     const btn = e.target.closest('[data-history-index]');

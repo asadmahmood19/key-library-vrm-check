@@ -156,8 +156,8 @@ export async function adjustCredits(
 }
 
 /**
- * Add order spend to the customer's carry-over balance and award credits.
- * Example: remainder £9 + order £11 = £20 → 2 credits, remainder £0.
+ * Award credits from a single order's spend (no carry-over between orders).
+ * Example: £15 order → 1 credit; leftover £5 is discarded, not saved for next order.
  */
 export async function applyOrderSpend(
   shopifyCustomerId: string,
@@ -166,12 +166,11 @@ export async function applyOrderSpend(
 ): Promise<{
   customer: Customer;
   creditsAdded: number;
-  previousRemainder: number;
-  newRemainder: number;
-  pooledSpend: number;
+  orderSpend: number;
 }> {
   const total = roundMoney(Math.max(0, orderTotal));
   const perCredit = config.creditsPoundsPerCredit;
+  const creditsAdded = Math.floor(total / perCredit);
   const p = normalizeProfile(profile);
   const client = await pool.connect();
 
@@ -189,34 +188,22 @@ export async function applyOrderSpend(
       [shopifyCustomerId, p.email || null, p.name || null, p.company || null]
     );
 
-    const locked = await client.query<Customer>(
-      `SELECT * FROM customers WHERE shopify_customer_id = $1 FOR UPDATE`,
-      [shopifyCustomerId]
-    );
-    const current = mapCustomer(locked.rows[0]);
-    const previousRemainder = current.spend_remainder;
-    const pooledSpend = roundMoney(previousRemainder + total);
-    const creditsAdded = Math.floor(pooledSpend / perCredit);
-    const newRemainder = roundMoney(pooledSpend - creditsAdded * perCredit);
-
     const updated = await client.query<Customer>(
       `UPDATE customers
        SET credits = credits + $2,
-           spend_remainder = $3,
-           total_spend = total_spend + $4,
+           spend_remainder = 0,
+           total_spend = total_spend + $3,
            updated_at = NOW()
        WHERE shopify_customer_id = $1
        RETURNING *`,
-      [shopifyCustomerId, creditsAdded, newRemainder, total]
+      [shopifyCustomerId, creditsAdded, total]
     );
 
     await client.query('COMMIT');
     return {
       customer: mapCustomer(updated.rows[0]),
       creditsAdded,
-      previousRemainder,
-      newRemainder,
-      pooledSpend,
+      orderSpend: total,
     };
   } catch (err) {
     await client.query('ROLLBACK');

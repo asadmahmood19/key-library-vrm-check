@@ -136,9 +136,6 @@
           escapeHtml(String(c.credits)) +
           '</td>' +
           '<td>' +
-          escapeHtml(Number(c.spend_remainder || 0).toFixed(2)) +
-          '</td>' +
-          '<td>' +
           escapeHtml(Number(c.total_spend || 0).toFixed(2)) +
           '</td>' +
           '<td>' +

@@ -191,7 +191,7 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
         orderId,
         customerId,
         result.creditsAdded,
-        `Order ${order.name || orderId}; subtotal £${subtotal.toFixed(2)} + remainder £${result.previousRemainder.toFixed(2)} = £${result.pooledSpend.toFixed(2)} → ${result.creditsAdded} credits, leftover £${result.newRemainder.toFixed(2)}; topic=${topic || 'n/a'}`,
+        `Order ${order.name || orderId}; subtotal £${subtotal.toFixed(2)} → ${result.creditsAdded} credits (per order, no carry-over); topic=${topic || 'n/a'}`,
       ]
     );
 
@@ -202,10 +202,8 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       email,
       orderSubtotal: subtotal,
       orderDate: orderDay,
-      previousRemainder: result.previousRemainder,
-      pooledSpend: result.pooledSpend,
+      orderSpend: result.orderSpend,
       creditsAdded: result.creditsAdded,
-      spendRemainder: result.newRemainder,
       creditsRemaining: result.customer.credits,
       totalSpend: result.customer.total_spend,
       topic,
@@ -218,10 +216,8 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       orderSubtotal: subtotal,
       orderDate: orderDay,
       poundsPerCredit: config.creditsPoundsPerCredit,
-      previousRemainder: result.previousRemainder,
-      pooledSpend: result.pooledSpend,
+      orderSpend: result.orderSpend,
       creditsAdded: result.creditsAdded,
-      spendRemainder: result.newRemainder,
       creditsRemaining: result.customer.credits,
       totalSpend: result.customer.total_spend,
     });
