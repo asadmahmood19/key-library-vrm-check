@@ -456,15 +456,9 @@ button.linkish:hover {
   align-items: flex-start;
   padding-top: 65px;
   background: linear-gradient(
-    to right,
-    #ffffff 0%,
-    rgba(28, 27, 25, 0.18) 14%,
-    rgba(28, 27, 25, 0.48) 35%,
-    rgba(28, 27, 25, 0.52) 50%,
-    rgba(28, 27, 25, 0.48) 65%,
-    rgba(28, 27, 25, 0.18) 86%,
-    #ffffff 100%
-  );
+    to right, #ffffff 0%, rgba(28, 27, 25, 0.18) 14%, rgb(113 111 108 / 52%) 35%,
+    rgb(113 111 108 / 52%) 50%, rgb(113 111 108 / 52%) 65%, rgba(28, 27, 25, 0.18) 86%,
+    #ffffff 100%);
 }
 
 .modal-card {
@@ -477,7 +471,7 @@ button.linkish:hover {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 }
 
-#howItWorksModal .modal-card {
+.modal-card.how-it-works-card {
   box-shadow: unset;
   border: 2px solid #f15c2e;
 }
