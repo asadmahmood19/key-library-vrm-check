@@ -238,12 +238,19 @@ button.secondary.is-loading .btn-spinner {
 .history li,
 .history-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
   padding: 10px 0;
   border-top: 1px solid var(--line);
   font-size: 0.9rem;
+}
+
+.history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .history-meta {
@@ -280,7 +287,7 @@ button.secondary.is-loading .btn-spinner {
 }
 
 @media (max-width: 480px) {
-  .history-item {
+  .history-row {
     align-items: flex-start;
   }
 
@@ -295,6 +302,50 @@ button.secondary.is-loading .btn-spinner {
 
 .history-view svg {
   display: block;
+}
+
+.history-chevron {
+  transition: transform 0.25s ease;
+}
+
+.history-item.is-open .history-chevron {
+  transform: rotate(180deg);
+}
+
+.history-details {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s ease;
+}
+
+.history-item.is-open .history-details {
+  grid-template-rows: 1fr;
+}
+
+.history-details-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.history-item.is-open .history-details-inner {
+  padding-top: 12px;
+}
+
+.history-details .result-section {
+  margin-bottom: 14px;
+}
+
+.history-details .result-section:last-of-type {
+  margin-bottom: 4px;
+}
+
+.history-details .result-section h2 {
+  font-size: 1.05rem;
+}
+
+.history-details .cache-badge {
+  display: inline-block;
+  margin-bottom: 10px;
 }
 
 .muted-id {
@@ -422,33 +473,6 @@ button.linkish:hover {
   font-weight: 600;
 }
 
-body.checker .modal-overlay {
-  z-index: 50;
-  background:
-  linear-gradient(to right,
-      #fff 0,
-      rgba(255,255,255,.9) 8%,
-      rgba(255,255,255,.45) 15%,
-      transparent 24%),
-  linear-gradient(to left,
-      #fff 0,
-      rgba(255,255,255,.9) 8%,
-      rgba(255,255,255,.45) 15%,
-      transparent 24%),
-  linear-gradient(to bottom,
-      #fff 0,
-      rgba(255,255,255,.9) 8%,
-      rgba(255,255,255,.45) 15%,
-      transparent 24%),
-  linear-gradient(to top,
-      #fff 0,
-      rgba(255,255,255,.9) 8%,
-      rgba(255,255,255,.45) 15%,
-      transparent 24%), rgb(28 27 25 / 25%);
-}
-#lookupModal .modal-card {
-  border: 2px solid #f15c2e;
-}
 @media (max-width: 640px) {
   .modal-dl {
     grid-template-columns: 1fr;
@@ -456,8 +480,6 @@ body.checker .modal-overlay {
 
   .modal-card {
     max-height: 85vh;
-    bottom: 250px;
-    position: relative;
   }
 }
 

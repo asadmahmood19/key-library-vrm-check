@@ -86,8 +86,18 @@
         const detailLine = detailParts.length
           ? '<span class="history-detail">' + detailParts.map(escapeHtml).join('<br />') + '</span>'
           : '';
+        const detailsPanel = item.vehicle
+          ? '<div class="history-details" id="history-details-' +
+            index +
+            '">' +
+            '<div class="history-details-inner">' +
+            '<span class="cache-badge">Viewing saved lookup (no credit used)</span>' +
+            buildResultSections(item.vehicle) +
+            '</div></div>'
+          : '';
         return (
           '<li class="history-item">' +
+          '<div class="history-row">' +
           '<div class="history-meta">' +
           '<span class="history-vrm"><strong>' +
           escapeHtml(item.vrm) +
@@ -98,13 +108,18 @@
           index +
           '"' +
           canView +
+          ' aria-expanded="false"' +
+          (item.vehicle
+            ? ' aria-controls="history-details-' + index + '"'
+            : '') +
           ' title="View this lookup" aria-label="View lookup">' +
-          '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
-          '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/>' +
-          '<circle cx="12" cy="12" r="3"/>' +
+          '<svg class="history-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M6 9l6 6 6-6"/>' +
           '</svg>' +
           '<span>View</span>' +
           '</button>' +
+          '</div>' +
+          detailsPanel +
           '</li>'
         );
       })
@@ -186,25 +201,12 @@
     notifyHeight();
   }
 
-  const lookupModal = document.getElementById('lookupModal');
-  const lookupModalBody = document.getElementById('lookupModalBody');
-  const lookupModalTitle = document.getElementById('lookupModalTitle');
-  const lookupModalBadge = document.getElementById('lookupModalBadge');
-  const lookupModalClose = document.getElementById('lookupModalClose');
-
-  function openHistoryModal(vehicle) {
-    if (!vehicle) return;
-    lookupModalTitle.textContent = 'VRM ' + (vehicle.vrm || '');
-    lookupModalBadge.textContent = 'Viewing saved lookup (no credit used)';
-    lookupModalBadge.classList.remove('hidden');
-    lookupModalBody.innerHTML = buildResultSections(vehicle);
-    show(lookupModal);
-  }
-
-  function closeHistoryModal() {
-    hide(lookupModal);
-    lookupModalBadge.classList.add('hidden');
-    lookupModalBadge.textContent = '';
+  function closeAllHistoryDropdowns() {
+    historyList.querySelectorAll('.history-item.is-open').forEach(function (el) {
+      el.classList.remove('is-open');
+      const btn = el.querySelector('.history-view');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    });
   }
 
   function escapeHtml(str) {
@@ -243,17 +245,16 @@
     const item = historyItems[index];
     if (!item || !item.vehicle) return;
     hide(errorMsg);
-    openHistoryModal(item.vehicle);
-  });
 
-  lookupModalClose.addEventListener('click', closeHistoryModal);
-  lookupModal.addEventListener('click', function (e) {
-    if (e.target === lookupModal) closeHistoryModal();
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !lookupModal.classList.contains('hidden')) {
-      closeHistoryModal();
+    const li = btn.closest('.history-item');
+    const isOpen = li.classList.contains('is-open');
+    closeAllHistoryDropdowns();
+
+    if (!isOpen) {
+      li.classList.add('is-open');
+      btn.setAttribute('aria-expanded', 'true');
     }
+    notifyHeight();
   });
 
   form.addEventListener('submit', async function (e) {
