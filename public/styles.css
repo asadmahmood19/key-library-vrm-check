@@ -459,6 +459,7 @@ button.linkish:hover {
     to right, #ffffff 0%, rgba(28, 27, 25, 0.18) 14%, rgb(113 111 108 / 52%) 35%,
     rgb(113 111 108 / 52%) 50%, rgb(113 111 108 / 52%) 65%, rgba(28, 27, 25, 0.18) 86%,
     #ffffff 100%);
+    backdrop-filter: blur(1px);
 }
 
 .modal-card {
