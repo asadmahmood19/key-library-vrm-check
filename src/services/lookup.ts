@@ -96,8 +96,13 @@ export async function recentLookups(
 > {
   const { rows } = await query<LookupRow>(
     `SELECT id, shopify_customer_id, vrm, was_cached, payload, created_at
-     FROM lookups
-     WHERE shopify_customer_id = $1
+     FROM (
+       SELECT DISTINCT ON (vrm)
+         id, shopify_customer_id, vrm, was_cached, payload, created_at
+       FROM lookups
+       WHERE shopify_customer_id = $1
+       ORDER BY vrm, created_at DESC
+     ) unique_lookups
      ORDER BY created_at DESC
      LIMIT $2`,
     [shopifyCustomerId, limit]
