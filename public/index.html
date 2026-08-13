@@ -22,7 +22,16 @@
     <form class="lookup-form" id="lookupForm">
       <div class="row">
         <div class="reg-plate">
-          <span class="reg-plate-strip" aria-hidden="true">🇬🇧 UK</span>
+          <span class="reg-plate-strip" aria-hidden="true">
+            <svg class="reg-plate-flag" viewBox="0 0 60 30" xmlns="http://www.w3.org/2000/svg" focusable="false">
+              <rect width="60" height="30" fill="#012169"/>
+              <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+              <path d="M0,0 L60,30 M60,0 L0,30" stroke="#C8102E" stroke-width="2"/>
+              <path d="M30,0 V30 M0,15 H60" stroke="#fff" stroke-width="10"/>
+              <path d="M30,0 V30 M0,15 H60" stroke="#C8102E" stroke-width="6"/>
+            </svg>
+            <span class="reg-plate-uk">UK</span>
+          </span>
           <input
             id="vrmInput"
             name="vrm"
