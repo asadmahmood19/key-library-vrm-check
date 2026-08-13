@@ -1,8 +1,8 @@
 import { query } from '../db';
-import { getFreshCache, fetchVehicleFromApi, upsertCache } from './cache';
+import { getFreshCache, getOrFetchVehicle } from './cache';
 import { CustomerProfile, deductOneCredit, upsertCustomer } from './credits';
 import { summarizeVehicle, VehicleSummary } from './vehicleApi';
-import { isValidVrm, normalizeVrm } from '../utils/vrm';
+import { parseLookupQuery } from '../utils/vrm';
 
 export interface LookupRow {
   id: string;
@@ -26,43 +26,45 @@ export class LookupError extends Error {
 
 export async function performLookup(
   shopifyCustomerId: string,
-  rawVrm: string,
+  rawQuery: string,
   profile?: CustomerProfile | string | null
 ): Promise<{ vehicle: VehicleSummary; fromCache: boolean; creditsRemaining: number }> {
-  const vrm = normalizeVrm(rawVrm);
-  if (!isValidVrm(vrm)) {
-    throw new LookupError('Invalid registration number');
+  let lookup;
+  try {
+    lookup = parseLookupQuery(rawQuery);
+  } catch (err) {
+    throw new LookupError(err instanceof Error ? err.message : 'Invalid registration or VIN');
   }
 
   const customer = await upsertCustomer(shopifyCustomerId, profile);
-  const cached = await getFreshCache(vrm);
+  const cached = await getFreshCache(lookup.value);
 
-  if (cached) {
-    await query(
-      `INSERT INTO lookups (shopify_customer_id, vrm, was_cached, payload)
-       VALUES ($1, $2, TRUE, $3::jsonb)`,
-      [shopifyCustomerId, vrm, JSON.stringify(cached.payload)]
-    );
-    return {
-      vehicle: summarizeVehicle(cached.payload, vrm),
-      fromCache: true,
-      creditsRemaining: customer.credits,
-    };
-  }
-
-  if (customer.credits < 1) {
+  if (!cached && customer.credits < 1) {
     throw new LookupError('No lookup credits remaining', 402);
   }
 
-  let payload: Record<string, unknown>;
+  let result;
   try {
-    payload = await fetchVehicleFromApi(vrm);
+    result = await getOrFetchVehicle(lookup);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Vehicle lookup failed';
     throw new LookupError(message, 502);
   }
 
-  await upsertCache(vrm, payload);
+  const storeKey = result.cacheKey || lookup.value;
+
+  if (result.fromCache) {
+    await query(
+      `INSERT INTO lookups (shopify_customer_id, vrm, was_cached, payload)
+       VALUES ($1, $2, TRUE, $3::jsonb)`,
+      [shopifyCustomerId, storeKey, JSON.stringify(result.payload)]
+    );
+    return {
+      vehicle: result.summary,
+      fromCache: true,
+      creditsRemaining: customer.credits,
+    };
+  }
 
   const updated = await deductOneCredit(shopifyCustomerId);
   if (!updated) {
@@ -72,11 +74,11 @@ export async function performLookup(
   await query(
     `INSERT INTO lookups (shopify_customer_id, vrm, was_cached, payload)
      VALUES ($1, $2, FALSE, $3::jsonb)`,
-    [shopifyCustomerId, vrm, JSON.stringify(payload)]
+    [shopifyCustomerId, storeKey, JSON.stringify(result.payload)]
   );
 
   return {
-    vehicle: summarizeVehicle(payload, vrm),
+    vehicle: result.summary,
     fromCache: false,
     creditsRemaining: updated.credits,
   };

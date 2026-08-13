@@ -163,20 +163,38 @@
     }
 
     const summary = [
-      ['Registration Number', v.vrm],
+      ['VRM', v.vrm],
       ['VIN', v.vin || v.vinLast5],
-      ['Make', v.make],
-      ['Model', v.model],
-      ['Year', v.year],
+      ['DVLA Make', v.make],
+      ['DVLA Model', v.model],
+      ['DVLA year of manufacture', v.year],
+      ['Model Generation', v.modelGeneration],
+      ['Model Series', v.modelSeries],
+      ['Model Code', v.modelCode],
+      ['Model Start Date', v.modelStartDate],
+      ['Model End Date', v.modelEndDate],
     ];
 
     const more = [
-      ['Fuel Type', v.fuel],
-      ['Colour', v.colour],
-      ['Engine Capacity', v.engineCc],
-      ['Date First Registered', v.dateFirstRegistered],
+      ['Vehicle Type', v.vehicleType],
       ['Tax Status', v.taxStatus],
       ['Tax Due Date', v.taxDueDate],
+      ['MOT Status', v.motStatus],
+      ['MOT Expiry Date', v.motExpiryDate],
+      ['Engine model code', v.engineModelCode],
+      ['Body style', v.body],
+      ['Country of origin', v.countryOfOrigin],
+      ['Current colour', v.colour],
+      ['Date first registered', v.dateFirstRegistered],
+      ['Engine capacity', v.engineCc],
+      ['Engine manufacturer', v.engineManufacturer],
+      ['Number Of Gears', v.numberOfGears],
+      ['Fuel type', v.fuel],
+      ['Maximum power', v.maximumPower],
+      ['Number of doors', v.numberOfDoors],
+      ['Transmission', v.transmission],
+      ['Euro Status', v.euroStatus],
+      ['Issue date of latest V5', v.latestV5IssueDate],
     ];
 
     return (
@@ -239,6 +257,8 @@
     buyCreditsUrl = data.buyCreditsUrl || buyCreditsUrl;
     setCredits(data.credits);
     renderHistory(data.history);
+    const howBuy = document.getElementById('howItWorksBuyLink');
+    if (howBuy) howBuy.href = buyCreditsUrl;
   }
 
   function openHowItWorks() {

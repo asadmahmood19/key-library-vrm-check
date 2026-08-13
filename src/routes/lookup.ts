@@ -9,14 +9,14 @@ lookupRouter.post('/', async (req, res) => {
     const email = req.body.email ? String(req.body.email).trim() : null;
     const name = req.body.name ? String(req.body.name).trim() : null;
     const company = req.body.company ? String(req.body.company).trim() : null;
-    const vrm = String(req.body.vrm || '').trim();
+    const vrm = String(req.body.vrm || req.body.query || '').trim();
 
     if (!customerId) {
       res.status(400).json({ error: 'customer_id is required' });
       return;
     }
     if (!vrm) {
-      res.status(400).json({ error: 'vrm is required' });
+      res.status(400).json({ error: 'Registration or VIN is required' });
       return;
     }
 

@@ -28,13 +28,24 @@ Open:
 
 | Variable | Purpose |
 |---|---|
-| `VEHICLE_API_KEY` | CheckCarDetails API key |
+| `VEHICLE_API_KEY` | CheckCarDetails **live** API key |
+| `DVLA_API_KEY` | DVLA Vehicle Enquiry `x-api-key` (Tax / MOT fields) |
 | `ADMIN_PASSWORD` | Admin dashboard password |
 | `DATABASE_URL` | Neon Postgres connection string |
 | `CACHE_DURATION_DAYS` | Cache TTL (default `7`) |
-| `BUY_CREDITS_URL` | Buy Credits redirect (swap for Shopify product URL later) |
+| `BUY_CREDITS_URL` | Buy Credits redirect (Shopify collection when ready) |
 | `SESSION_SECRET` | Signed cookie session secret |
+| `CREDITS_POUNDS_PER_CREDIT` | £ subtotal per 1 credit (default `25`) |
+| `CREDITS_START_DATE` | Orders on/after this date count (`YYYY-MM-DD`) |
 | `PORT` | Local port (default `3000`) |
+
+## Credit rules
+
+- **Cache hit** (same VRM/VIN within `CACHE_DURATION_DAYS`): return cached data, **no credit deducted**
+- **Cache miss**: call CheckCarDetails (+ DVLA for Tax/MOT), store cache, deduct **1 credit**, log lookup
+- **Zero credits**: submit disabled; show Buy Credits → `BUY_CREDITS_URL`
+
+Search accepts a **UK registration (VRM)** or a **17-character VIN**.
 
 ## Shopify iframe embed
 
@@ -60,7 +71,7 @@ No custom Shopify app or Admin API token is required for this version.
 
 1. Visit `/admin`
 2. Enter `ADMIN_PASSWORD`
-3. Assign credits to Shopify customer IDs
+3. Assign credits by customer email
 4. Review stats, lookup history, cache, and export CSV
 
 ## Deploy on Vercel
@@ -72,12 +83,6 @@ No custom Shopify app or Admin API token is required for this version.
 5. Update the Shopify iframe `src` to your Vercel URL
 
 Schema migrations run automatically on first request (`ensureSchema`). You can also run `npm run migrate` locally against Neon.
-
-## Credit rules
-
-- **Cache hit** (VRM fetched within `CACHE_DURATION_DAYS`): return cached data, **no credit deducted**
-- **Cache miss**: call CheckCarDetails, store cache, deduct **1 credit**, log lookup
-- **Zero credits**: submit disabled; show Buy Credits → `BUY_CREDITS_URL`
 
 ## Shopify order webhook (auto-award credits)
 
@@ -91,7 +96,7 @@ Recommended event: **Order payment** (`orders/paid`).
 
 ### Rule
 
-**£10 of order subtotal = 1 lookup credit**, calculated **per order only** (no carry-over).
+**£25 of order subtotal = 1 lookup credit**, calculated **per order only** (no carry-over).
 
 Subtotal is used (after discounts), **excluding tax and delivery**.
 
@@ -101,9 +106,9 @@ Example:
 
 | Order subtotal | Credits added | Leftover |
 |----------------|---------------|----------|
-| £9 | 0 | discarded |
-| £15 | 1 | discarded (£5) |
-| £20 | 2 | £0 |
+| £20 | 0 | discarded |
+| £25 | 1 | £0 |
+| £75 | 3 | £0 |
 
 ### Setup
 
@@ -113,8 +118,8 @@ Example:
    - Format: **JSON**
    - URL: the webhook URL above
 3. Optional env vars:
-   - `CREDITS_POUNDS_PER_CREDIT` (default `10`)
+   - `CREDITS_POUNDS_PER_CREDIT` (default `25`)
    - `CREDITS_START_DATE` (default `2026-07-22`)
 
-The endpoint finds the customer, awards `floor(subtotal / £10)` credits for that order only, clears any old spend remainder, and ignores duplicate order deliveries.
+The endpoint finds the customer, awards `floor(subtotal / £25)` credits for that order only, and ignores duplicate order deliveries.
 

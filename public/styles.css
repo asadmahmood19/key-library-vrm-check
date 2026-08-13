@@ -115,6 +115,22 @@ body.checker {
   width: 100%;
 }
 
+.how-it-works-packages {
+  margin: 8px 0 0;
+  padding-left: 1.2rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.how-it-works-packages li {
+  margin-bottom: 4px;
+}
+
+.how-it-works-packages strong {
+  color: var(--ink);
+}
+
 .credits-label {
   margin: 0;
   font-size: 0.85rem;

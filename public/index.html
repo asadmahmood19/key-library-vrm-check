@@ -20,14 +20,14 @@
     </div>
 
     <form class="lookup-form" id="lookupForm">
-      <label for="vrmInput">Registration</label>
+      <label for="vrmInput">Registration or VIN</label>
       <div class="row">
         <input
           id="vrmInput"
           name="vrm"
           type="text"
-          maxlength="10"
-          placeholder="e.g. EA65 AMX"
+          maxlength="17"
+          placeholder="e.g. EA65 AMX or VIN"
           autocomplete="off"
           required
         />
@@ -59,35 +59,47 @@
       </div>
       <div class="modal-body how-it-works-body">
         <div class="how-it-works-highlight">
-          <span class="how-it-works-rate">£10 spent = 1 lookup credit</span>
+          <span class="how-it-works-rate">£25 spent = 1 VRM lookup credit</span>
         </div>
 
         <div class="how-it-works-section">
           <h3>Earning credits</h3>
           <p>
-            Credits are calculated <strong>per order</strong> only leftover spend does not carry
-            over. Example: a <strong>£15</strong> order awards <strong>1 credit</strong>; the remaining
-            <strong>£5</strong> is not saved for the next order.
+            Earn <strong>1 VRM lookup credit</strong> for every <strong>£25</strong> spent in a
+            <strong>single order</strong> (order subtotal, excluding taxes and shipping). Leftover
+            spend does not carry over to the next order.
           </p>
           <p>
-            Orders under <strong>£10</strong> award no credits. A <strong>£20</strong> order awards
-            <strong>2 credits</strong>.
+            Examples: spend <strong>£25</strong> = <strong>1 credit</strong>; spend
+            <strong>£75</strong> = <strong>3 credits</strong>.
           </p>
         </div>
 
         <div class="how-it-works-section">
           <h3>Using credits</h3>
           <p>
-            Each live registration lookup uses <strong>1 credit</strong>. If you have already looked up that
-            plate recently (within 7 days), it’s served from cache and doesn’t use a credit.
+            Each vehicle registration (or VIN) lookup uses <strong>1 credit</strong>.
           </p>
           <p>
-            You can check your remaining credits on this Registration Check page when logged in.
+            If you search the same registration again within <strong>7 days</strong>, no additional
+            credit will be used.
           </p>
+        </div>
+
+        <div class="how-it-works-section">
+          <h3>Need more credits?</h3>
+          <p>
+            You can purchase additional VRM lookup credits at any time:
+          </p>
+          <ul class="how-it-works-packages">
+            <li><strong>£6.25</strong> for <strong>25 credits</strong> (£0.25 each)</li>
+            <li><strong>£10</strong> for <strong>50 credits</strong> (£0.20 each)</li>
+          </ul>
         </div>
 
         <div class="how-it-works-actions">
           <a
+            id="howItWorksBuyLink"
             class="button"
             href="https://www.keylibrary.co.uk/"
             target="_blank"
