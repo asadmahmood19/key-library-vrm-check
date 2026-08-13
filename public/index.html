@@ -20,17 +20,20 @@
     </div>
 
     <form class="lookup-form" id="lookupForm">
-      <label for="vrmInput">Registration or VIN</label>
       <div class="row">
-        <input
-          id="vrmInput"
-          name="vrm"
-          type="text"
-          maxlength="17"
-          placeholder="e.g. EA65 AMX or VIN"
-          autocomplete="off"
-          required
-        />
+        <div class="reg-plate">
+          <span class="reg-plate-strip" aria-hidden="true">UK</span>
+          <input
+            id="vrmInput"
+            name="vrm"
+            type="text"
+            maxlength="17"
+            placeholder="Enter registration or VIN"
+            aria-label="Enter registration or VIN"
+            autocomplete="off"
+            required
+          />
+        </div>
         <button type="submit" id="submitBtn">Check</button>
       </div>
     </form>

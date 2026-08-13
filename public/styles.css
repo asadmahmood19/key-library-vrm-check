@@ -155,6 +155,59 @@ body.checker {
 .row {
   display: flex;
   gap: 8px;
+  align-items: stretch;
+}
+
+.reg-plate {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: stretch;
+  background: var(--accent-soft);
+  border: 2px solid #f05a28;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(240, 90, 40, 0.12);
+}
+
+.reg-plate-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 42px;
+  background: #f05a28;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.reg-plate input[type="text"] {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  padding: 12px 14px;
+}
+
+.reg-plate input[type="text"]::placeholder {
+  color: rgba(28, 27, 25, 0.45);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+.reg-plate input[type="text"]:focus {
+  outline: none;
+}
+
+.reg-plate:focus-within {
+  box-shadow: 0 0 0 3px rgba(240, 90, 40, 0.2);
 }
 
 input[type="text"],
