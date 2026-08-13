@@ -36,9 +36,17 @@ function isFullVin(value: unknown): value is string {
   return typeof value === 'string' && /^[A-HJ-NPR-Z0-9]{17}$/i.test(value);
 }
 
-function currentVin(payload: Record<string, unknown>): string | null {
-  const id = (payload.VehicleIdentification || {}) as Record<string, unknown>;
-  return typeof id.Vin === 'string' ? id.Vin : null;
+/** If the user searched by VIN, keep that full VIN on the payload (vehiclespecs often masks Vin). */
+function applyLookupVin(
+  payload: Record<string, unknown>,
+  lookup: LookupQuery
+): Record<string, unknown> {
+  if (lookup.kind !== 'vin' || !isFullVin(lookup.value)) return payload;
+  const id = {
+    ...((payload.VehicleIdentification || {}) as Record<string, unknown>),
+    Vin: lookup.value,
+  };
+  return { ...payload, VehicleIdentification: id };
 }
 
 export async function fetchVehicleFromApi(lookup: LookupQuery): Promise<Record<string, unknown>> {
@@ -74,64 +82,6 @@ export async function fetchVehicleFromApi(lookup: LookupQuery): Promise<Record<s
   return data;
 }
 
-/**
- * vehiclespecs returns a masked Vin (e.g. *************5561).
- * carhistorycheck returns the full VIN under VehicleRegistration.Vin.
- * Soft-fails so a history-check outage does not block the main lookup.
- */
-async function fetchFullVinFromHistory(lookup: LookupQuery): Promise<string | null> {
-  try {
-    const url = new URL(config.carHistoryCheckUrl);
-    url.searchParams.set('apikey', config.vehicleApiKey);
-    if (lookup.kind === 'vin') {
-      url.searchParams.set('vin', lookup.value);
-    } else {
-      url.searchParams.set('vrm', lookup.value);
-    }
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      console.warn(`carhistorycheck failed (${response.status}): ${text || response.statusText}`);
-      return null;
-    }
-
-    const data = (await response.json()) as Record<string, unknown>;
-    const reg = (data.VehicleRegistration || {}) as Record<string, unknown>;
-    if (isFullVin(reg.Vin)) return String(reg.Vin).toUpperCase();
-    return null;
-  } catch (err) {
-    console.warn('carhistorycheck error', err);
-    return null;
-  }
-}
-
-export async function enrichPayloadWithFullVin(
-  payload: Record<string, unknown>,
-  lookup: LookupQuery
-): Promise<Record<string, unknown>> {
-  if (isFullVin(currentVin(payload))) return payload;
-
-  // If lookup itself was a full VIN, prefer that.
-  if (lookup.kind === 'vin' && isFullVin(lookup.value)) {
-    const id = { ...((payload.VehicleIdentification || {}) as Record<string, unknown>), Vin: lookup.value };
-    return { ...payload, VehicleIdentification: id };
-  }
-
-  const fullVin = await fetchFullVinFromHistory(lookup);
-  if (!fullVin) return payload;
-
-  const id = {
-    ...((payload.VehicleIdentification || {}) as Record<string, unknown>),
-    Vin: fullVin,
-  };
-  return { ...payload, VehicleIdentification: id };
-}
-
 function resolvedVrm(payload: Record<string, unknown>, fallback: string): string {
   const id = (payload.VehicleIdentification || {}) as Record<string, unknown>;
   const fromPayload = String(id.Vrm || '')
@@ -149,7 +99,7 @@ async function persistCache(
   if (lookup.kind === 'vin') await upsertCache(lookup.value, payload);
 }
 
-/** Fetch (or reuse cache), merge full VIN + DVLA Tax/MOT, and write cache under VRM (+ VIN when used). */
+/** Fetch vehiclespecs only (+ DVLA Tax/MOT). Never calls carhistorycheck. */
 export async function getOrFetchVehicle(lookup: LookupQuery): Promise<{
   summary: VehicleSummary;
   payload: Record<string, unknown>;
@@ -159,11 +109,9 @@ export async function getOrFetchVehicle(lookup: LookupQuery): Promise<{
   const cached = await getFreshCache(lookup.value);
   if (cached) {
     const vrm = resolvedVrm(cached.payload, cached.vrm);
-    let payload = cached.payload;
-    const beforeVin = currentVin(payload);
-    payload = await enrichPayloadWithFullVin(payload, lookup);
+    let payload = applyLookupVin(cached.payload, lookup);
     payload = await enrichPayloadWithDvla(payload, vrm);
-    if (payload !== cached.payload || currentVin(payload) !== beforeVin) {
+    if (payload !== cached.payload) {
       await persistCache(payload, vrm, lookup);
     }
     return {
@@ -177,7 +125,7 @@ export async function getOrFetchVehicle(lookup: LookupQuery): Promise<{
   const raw = await fetchVehicleFromApi(lookup);
   const vrm = resolvedVrm(raw, lookup.kind === 'vrm' ? lookup.value : '');
 
-  let payload = await enrichPayloadWithFullVin(raw, lookup);
+  let payload = applyLookupVin(raw, lookup);
   if (vrm) {
     payload = await enrichPayloadWithDvla(payload, vrm);
   }

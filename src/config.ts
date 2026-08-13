@@ -20,8 +20,6 @@ export const config = {
   buyCreditsUrl: process.env.BUY_CREDITS_URL || 'https://www.keylibrary.co.uk/',
   sessionSecret: required('SESSION_SECRET'),
   vehicleApiBaseUrl: 'https://api.checkcardetails.co.uk/vehicledata/vehiclespecs',
-  /** Used only to obtain the unmasked VIN (vehiclespecs returns a masked Vin). */
-  carHistoryCheckUrl: 'https://api.checkcardetails.co.uk/vehicledata/carhistorycheck',
   dvlaApiUrl: 'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles',
   isProd: process.env.NODE_ENV === 'production',
   /** £ spent per 1 lookup credit (default: £25 = 1 credit) */
