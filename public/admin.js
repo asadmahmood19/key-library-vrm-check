@@ -7,7 +7,6 @@
   const statsGrid = document.getElementById('statsGrid');
   const customersBody = document.getElementById('customersBody');
   const lookupsBody = document.getElementById('lookupsBody');
-  const cacheBody = document.getElementById('cacheBody');
   const creditForm = document.getElementById('creditForm');
   const customerSearch = document.getElementById('customerSearch');
   const refreshCustomers = document.getElementById('refreshCustomers');
@@ -90,7 +89,7 @@
   }
 
   async function refreshAll() {
-    await Promise.all([loadStats(), loadCustomers(), loadLookups(), loadCache()]);
+    await Promise.all([loadStats(), loadCustomers(), loadLookups()]);
   }
 
   async function loadStats() {
@@ -98,9 +97,7 @@
     const items = [
       ['Total lookups', data.totalLookups],
       ['Unique VRMs', data.uniqueVrms],
-      ['Cache hit rate', data.cacheHitRate + '%'],
       ['Customers with credits', data.customersWithCredits],
-      ['Cached registrations', data.cachedRegistrations],
     ];
     statsGrid.innerHTML = items
       .map(function (pair) {
@@ -175,9 +172,6 @@
           escapeHtml(row.email || '—') +
           '</td>' +
           '<td>' +
-          escapeHtml(row.company || '—') +
-          '</td>' +
-          '<td>' +
           (hasVehicle
             ? '<button type="button" class="linkish" data-lookup-index="' +
               index +
@@ -195,33 +189,6 @@
           '<td>' +
           escapeHtml(row.year == null ? '—' : String(row.year)) +
           '</td>' +
-          '<td>' +
-          (row.was_cached ? 'Yes' : 'No') +
-          '</td>' +
-          '</tr>'
-        );
-      })
-      .join('');
-  }
-
-  async function loadCache() {
-    const data = await api('/api/admin/cache?limit=50');
-    cacheBody.innerHTML = data.cache
-      .map(function (row) {
-        return (
-          '<tr>' +
-          '<td>' +
-          escapeHtml(row.vrm) +
-          '</td>' +
-          '<td>' +
-          escapeHtml(formatDateOnly(row.fetched_at)) +
-          '</td>' +
-          '<td>' +
-          escapeHtml(String(row.age_days)) +
-          '</td>' +
-          '<td><button type="button" class="secondary" data-purge="' +
-          escapeHtml(row.vrm) +
-          '">Purge</button></td>' +
           '</tr>'
         );
       })
@@ -298,16 +265,6 @@
         body: JSON.stringify({ credits: Number(input.value) }),
       });
       await Promise.all([loadCustomers(), loadStats()]);
-    });
-  });
-
-  cacheBody.addEventListener('click', async function (e) {
-    const btn = e.target.closest('[data-purge]');
-    if (!btn) return;
-    const vrm = btn.getAttribute('data-purge');
-    await withButtonLoading(btn, async function () {
-      await api('/api/admin/cache/' + encodeURIComponent(vrm), { method: 'DELETE' });
-      await Promise.all([loadCache(), loadStats()]);
     });
   });
 
@@ -407,7 +364,6 @@
         ['Transmission', v.transmission],
         ['Euro Status', v.euroStatus],
         ['Issue date of latest V5', v.latestV5IssueDate],
-        ['Cached lookup', row.was_cached ? 'Yes' : 'No'],
       ]);
     show(lookupModal);
   }

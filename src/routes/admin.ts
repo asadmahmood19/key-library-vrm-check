@@ -232,24 +232,83 @@ adminRouter.get('/export/:type', async (req, res) => {
     }
 
     if (type === 'lookups') {
-      const { rows } = await query<{
-        id: string;
-        shopify_customer_id: string;
-        vrm: string;
-        was_cached: boolean;
-        created_at: Date;
-      }>(
-        `SELECT id, shopify_customer_id, vrm, was_cached, created_at FROM lookups ORDER BY created_at DESC`
-      );
-      const header = 'id,shopify_customer_id,vrm,was_cached,created_at\n';
-      const body = rows
-        .map((r) =>
-          [r.id, r.shopify_customer_id, r.vrm, r.was_cached, r.created_at.toISOString()].join(',')
-        )
+      const lookups = await listLookups(50000, 0);
+      const header = [
+        'date',
+        'name',
+        'email',
+        'vrm',
+        'vin',
+        'make',
+        'model',
+        'year',
+        'model_generation',
+        'model_series',
+        'model_code',
+        'model_start_date',
+        'model_end_date',
+        'vehicle_type',
+        'tax_status',
+        'tax_due_date',
+        'mot_status',
+        'mot_expiry_date',
+        'engine_model_code',
+        'body_style',
+        'country_of_origin',
+        'colour',
+        'date_first_registered',
+        'engine_capacity',
+        'engine_manufacturer',
+        'number_of_gears',
+        'fuel_type',
+        'maximum_power',
+        'number_of_doors',
+        'transmission',
+        'euro_status',
+        'latest_v5_issue_date',
+      ].join(',');
+      const body = lookups
+        .map((r) => {
+          const v = r.vehicle;
+          return [
+            csvCell(r.created_at.toISOString().slice(0, 10)),
+            csvCell(r.name),
+            csvCell(r.email),
+            csvCell(v?.vrm || r.vrm),
+            csvCell(v?.vin || v?.vinLast5),
+            csvCell(v?.make),
+            csvCell(v?.model),
+            csvCell(v?.year),
+            csvCell(v?.modelGeneration),
+            csvCell(v?.modelSeries),
+            csvCell(v?.modelCode),
+            csvCell(v?.modelStartDate),
+            csvCell(v?.modelEndDate),
+            csvCell(v?.vehicleType),
+            csvCell(v?.taxStatus),
+            csvCell(v?.taxDueDate),
+            csvCell(v?.motStatus),
+            csvCell(v?.motExpiryDate),
+            csvCell(v?.engineModelCode),
+            csvCell(v?.body),
+            csvCell(v?.countryOfOrigin),
+            csvCell(v?.colour),
+            csvCell(v?.dateFirstRegistered),
+            csvCell(v?.engineCc),
+            csvCell(v?.engineManufacturer),
+            csvCell(v?.numberOfGears),
+            csvCell(v?.fuel),
+            csvCell(v?.maximumPower),
+            csvCell(v?.numberOfDoors),
+            csvCell(v?.transmission),
+            csvCell(v?.euroStatus),
+            csvCell(v?.latestV5IssueDate),
+          ].join(',');
+        })
         .join('\n');
       res.setHeader('Content-Type', 'text/csv');
       res.setHeader('Content-Disposition', 'attachment; filename="lookups.csv"');
-      res.send(header + body);
+      res.send(header + '\n' + body);
       return;
     }
 
@@ -265,4 +324,9 @@ function csvEscape(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
+}
+
+function csvCell(value: unknown): string {
+  if (value == null || value === '') return '';
+  return csvEscape(String(value));
 }
