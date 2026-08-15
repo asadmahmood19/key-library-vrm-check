@@ -5,11 +5,12 @@ import { query } from '../db';
 import {
   adjustCredits,
   listCustomers,
+  countCustomers,
   setCredits,
   setCreditsByEmail,
   upsertCustomer,
 } from '../services/credits';
-import { listLookups } from '../services/lookup';
+import { listLookups, countLookups } from '../services/lookup';
 
 export const adminRouter = Router();
 
@@ -68,10 +69,13 @@ adminRouter.get('/stats', async (_req, res) => {
 adminRouter.get('/customers', async (req, res) => {
   try {
     const search = req.query.search ? String(req.query.search) : undefined;
-    const limit = Math.min(Number(req.query.limit || 100), 500);
-    const offset = Number(req.query.offset || 0);
-    const customers = await listCustomers(search, limit, offset);
-    res.json({ customers });
+    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
+    const offset = Math.max(Number(req.query.offset || 0), 0);
+    const [customers, total] = await Promise.all([
+      listCustomers(search, limit, offset),
+      countCustomers(search),
+    ]);
+    res.json({ customers, total, limit, offset });
   } catch (err) {
     console.error('GET /api/admin/customers', err);
     res.status(500).json({ error: 'Failed to list customers' });
@@ -133,9 +137,12 @@ adminRouter.patch('/customers/:customerId/credits', async (req, res) => {
 
 adminRouter.get('/lookups', async (req, res) => {
   try {
-    const limit = Math.min(Number(req.query.limit || 50), 200);
-    const offset = Number(req.query.offset || 0);
-    const lookups = await listLookups(limit, offset);
+    const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
+    const offset = Math.max(Number(req.query.offset || 0), 0);
+    const [lookups, total] = await Promise.all([
+      listLookups(limit, offset),
+      countLookups(),
+    ]);
     res.json({
       lookups: lookups.map((row) => ({
         id: String(row.id),
@@ -151,6 +158,9 @@ adminRouter.get('/lookups', async (req, res) => {
         year: row.vehicle?.year || null,
         vehicle: row.vehicle,
       })),
+      total,
+      limit,
+      offset,
     });
   } catch (err) {
     console.error('GET /api/admin/lookups', err);

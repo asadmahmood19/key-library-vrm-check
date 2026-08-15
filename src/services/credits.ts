@@ -245,3 +245,19 @@ export async function listCustomers(search?: string, limit = 100, offset = 0): P
   );
   return rows.map(mapCustomer);
 }
+
+export async function countCustomers(search?: string): Promise<number> {
+  if (search) {
+    const { rows } = await query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM customers
+       WHERE shopify_customer_id ILIKE $1
+          OR COALESCE(email, '') ILIKE $1
+          OR COALESCE(name, '') ILIKE $1
+          OR COALESCE(company, '') ILIKE $1`,
+      [`%${search}%`]
+    );
+    return Number(rows[0]?.count || 0);
+  }
+  const { rows } = await query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM customers`);
+  return Number(rows[0]?.count || 0);
+}

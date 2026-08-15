@@ -799,6 +799,26 @@ td.actions {
   box-shadow: 0 1px 0 var(--line);
 }
 
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.pager-info {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.pager-buttons {
+  display: flex;
+  gap: 8px;
+}
+}
+
 table {
   width: 100%;
   border-collapse: collapse;

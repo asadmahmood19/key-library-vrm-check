@@ -8,3 +8,4 @@ dist/
 Thumbs.db
 .env*
 plan.md
+scripts/shopify-launch-credits.ts

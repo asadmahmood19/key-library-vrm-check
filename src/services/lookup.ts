@@ -150,3 +150,8 @@ export async function listLookups(limit = 50, offset = 0): Promise<
     vehicle: row.payload ? summarizeVehicle(row.payload, row.vrm) : null,
   }));
 }
+
+export async function countLookups(): Promise<number> {
+  const { rows } = await query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM lookups`);
+  return Number(rows[0]?.count || 0);
+}

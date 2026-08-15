@@ -10,6 +10,12 @@
   const creditForm = document.getElementById('creditForm');
   const customerSearch = document.getElementById('customerSearch');
   const refreshCustomers = document.getElementById('refreshCustomers');
+  const customersPager = document.getElementById('customersPager');
+  const lookupsPager = document.getElementById('lookupsPager');
+
+  const PAGE_SIZE = 50;
+  let customersPage = 1;
+  let lookupsPage = 1;
 
   function show(el) {
     el.classList.remove('hidden');
@@ -112,11 +118,46 @@
       .join('');
   }
 
+  function renderPager(el, page, total, onPage) {
+    const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const safePage = Math.min(Math.max(page, 1), pages);
+    const from = total === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+    const to = Math.min(safePage * PAGE_SIZE, total);
+    el.innerHTML =
+      '<span class="pager-info">' +
+      (total === 0 ? 'No records' : 'Showing ' + from + '–' + to + ' of ' + total) +
+      '</span>' +
+      '<div class="pager-buttons">' +
+      '<button type="button" class="secondary" data-pager="prev"' +
+      (safePage <= 1 ? ' disabled' : '') +
+      '>Previous</button>' +
+      '<button type="button" class="secondary" data-pager="next"' +
+      (safePage >= pages ? ' disabled' : '') +
+      '>Next</button>' +
+      '</div>';
+    el.querySelector('[data-pager="prev"]').addEventListener('click', function () {
+      if (safePage > 1) onPage(safePage - 1);
+    });
+    el.querySelector('[data-pager="next"]').addEventListener('click', function () {
+      if (safePage < pages) onPage(safePage + 1);
+    });
+    return safePage;
+  }
+
   async function loadCustomers() {
     const q = customerSearch.value.trim();
-    const qs = q ? '?search=' + encodeURIComponent(q) : '';
-    const data = await api('/api/admin/customers' + qs);
-    customersBody.innerHTML = data.customers
+    const qs = new URLSearchParams({
+      limit: String(PAGE_SIZE),
+      offset: String((customersPage - 1) * PAGE_SIZE),
+    });
+    if (q) qs.set('search', q);
+    const data = await api('/api/admin/customers?' + qs.toString());
+    const total = Number(data.total || 0);
+    customersPage = renderPager(customersPager, customersPage, total, function (page) {
+      customersPage = page;
+      loadCustomers();
+    });
+    customersBody.innerHTML = (data.customers || [])
       .map(function (c) {
         return (
           '<tr>' +
@@ -155,7 +196,17 @@
   }
 
   async function loadLookups() {
-    const data = await api('/api/admin/lookups?limit=100');
+    const data = await api(
+      '/api/admin/lookups?limit=' +
+        PAGE_SIZE +
+        '&offset=' +
+        (lookupsPage - 1) * PAGE_SIZE
+    );
+    const total = Number(data.total || 0);
+    lookupsPage = renderPager(lookupsPager, lookupsPage, total, function (page) {
+      lookupsPage = page;
+      loadLookups();
+    });
     window.__adminLookups = data.lookups || [];
     lookupsBody.innerHTML = window.__adminLookups
       .map(function (row, index) {
@@ -237,6 +288,7 @@
           }),
         });
         creditForm.reset();
+        customersPage = 1;
         await Promise.all([loadCustomers(), loadStats()]);
       });
     } catch (err) {
@@ -245,11 +297,13 @@
   });
 
   refreshCustomers.addEventListener('click', async function () {
+    customersPage = 1;
     await withButtonLoading(refreshCustomers, loadCustomers);
   });
 
   customerSearch.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
+      customersPage = 1;
       withButtonLoading(refreshCustomers, loadCustomers);
     }
   });
