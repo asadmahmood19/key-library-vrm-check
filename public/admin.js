@@ -12,10 +12,17 @@
   const refreshCustomers = document.getElementById('refreshCustomers');
   const customersPager = document.getElementById('customersPager');
   const lookupsPager = document.getElementById('lookupsPager');
+  const customersBulkBar = document.getElementById('customersBulkBar');
+  const customersBulkCount = document.getElementById('customersBulkCount');
+  const bulkCreditsInput = document.getElementById('bulkCreditsInput');
+  const bulkCreditsBtn = document.getElementById('bulkCreditsBtn');
+  const bulkClearBtn = document.getElementById('bulkClearBtn');
+  const selectAllCustomers = document.getElementById('selectAllCustomers');
 
   const PAGE_SIZE = 50;
   let customersPage = 1;
   let lookupsPage = 1;
+  const selectedCustomerIds = new Set();
 
   function show(el) {
     el.classList.remove('hidden');
@@ -144,6 +151,34 @@
     return safePage;
   }
 
+  function syncCustomerSelectionUi() {
+    const boxes = customersBody.querySelectorAll('input[data-select-customer]');
+    let pageSelected = 0;
+    boxes.forEach(function (box) {
+      const id = box.getAttribute('data-select-customer');
+      const checked = selectedCustomerIds.has(id);
+      box.checked = checked;
+      const row = box.closest('tr');
+      if (row) row.classList.toggle('is-selected', checked);
+      if (checked) pageSelected += 1;
+    });
+    if (selectAllCustomers) {
+      selectAllCustomers.checked = boxes.length > 0 && pageSelected === boxes.length;
+      selectAllCustomers.indeterminate =
+        pageSelected > 0 && pageSelected < boxes.length;
+    }
+    const count = selectedCustomerIds.size;
+    customersBulkCount.textContent =
+      count === 1 ? '1 selected' : count + ' selected';
+    if (count > 0) show(customersBulkBar);
+    else hide(customersBulkBar);
+  }
+
+  function clearCustomerSelection() {
+    selectedCustomerIds.clear();
+    syncCustomerSelectionUi();
+  }
+
   async function loadCustomers() {
     const q = customerSearch.value.trim();
     const qs = new URLSearchParams({
@@ -159,8 +194,16 @@
     });
     customersBody.innerHTML = (data.customers || [])
       .map(function (c) {
+        const id = String(c.shopify_customer_id);
         return (
           '<tr>' +
+          '<td class="check-col">' +
+          '<input type="checkbox" data-select-customer="' +
+          escapeHtml(id) +
+          '"' +
+          (selectedCustomerIds.has(id) ? ' checked' : '') +
+          ' aria-label="Select customer" />' +
+          '</td>' +
           '<td>' +
           escapeHtml(c.name || '—') +
           '</td>' +
@@ -183,16 +226,17 @@
           '<input class="small" type="number" min="0" value="' +
           escapeHtml(String(c.credits)) +
           '" data-id="' +
-          escapeHtml(c.shopify_customer_id) +
+          escapeHtml(id) +
           '" />' +
           '<button type="button" data-save="' +
-          escapeHtml(c.shopify_customer_id) +
+          escapeHtml(id) +
           '">Save</button>' +
           '</td>' +
           '</tr>'
         );
       })
       .join('');
+    syncCustomerSelectionUi();
   }
 
   async function loadLookups() {
@@ -306,6 +350,64 @@
       customersPage = 1;
       withButtonLoading(refreshCustomers, loadCustomers);
     }
+  });
+
+  customersBody.addEventListener('change', function (e) {
+    const box = e.target.closest('input[data-select-customer]');
+    if (!box) return;
+    const id = box.getAttribute('data-select-customer');
+    if (box.checked) selectedCustomerIds.add(id);
+    else selectedCustomerIds.delete(id);
+    syncCustomerSelectionUi();
+  });
+
+  selectAllCustomers.addEventListener('change', function () {
+    const boxes = customersBody.querySelectorAll('input[data-select-customer]');
+    boxes.forEach(function (box) {
+      const id = box.getAttribute('data-select-customer');
+      if (selectAllCustomers.checked) selectedCustomerIds.add(id);
+      else selectedCustomerIds.delete(id);
+    });
+    syncCustomerSelectionUi();
+  });
+
+  bulkClearBtn.addEventListener('click', clearCustomerSelection);
+
+  bulkCreditsBtn.addEventListener('click', async function () {
+    const credits = Number(bulkCreditsInput.value);
+    if (!Number.isFinite(credits) || credits < 0) {
+      alert('Enter a valid credits number (0 or more)');
+      return;
+    }
+    const ids = Array.from(selectedCustomerIds);
+    if (!ids.length) {
+      alert('Select at least one customer');
+      return;
+    }
+    if (
+      !confirm(
+        'Set ' +
+          credits +
+          ' credit' +
+          (credits === 1 ? '' : 's') +
+          ' on ' +
+          ids.length +
+          ' selected customer' +
+          (ids.length === 1 ? '' : 's') +
+          '?'
+      )
+    ) {
+      return;
+    }
+    await withButtonLoading(bulkCreditsBtn, async function () {
+      await api('/api/admin/customers/credits/bulk', {
+        method: 'PATCH',
+        body: JSON.stringify({ customer_ids: ids, credits: credits }),
+      });
+      clearCustomerSelection();
+      bulkCreditsInput.value = '';
+      await Promise.all([loadCustomers(), loadStats()]);
+    });
   });
 
   customersBody.addEventListener('click', async function (e) {

@@ -7,6 +7,7 @@ import {
   listCustomers,
   countCustomers,
   setCredits,
+  setCreditsBulk,
   setCreditsByEmail,
   upsertCustomer,
 } from '../services/credits';
@@ -103,6 +104,30 @@ adminRouter.post('/customers', async (req, res) => {
     const status = message.includes('No customer found') ? 404 : 500;
     if (status === 500) console.error('POST /api/admin/customers', err);
     res.status(status).json({ error: message });
+  }
+});
+
+adminRouter.patch('/customers/credits/bulk', async (req, res) => {
+  try {
+    const credits = Number(req.body.credits);
+    const customerIds = Array.isArray(req.body.customer_ids)
+      ? req.body.customer_ids.map((id: unknown) => String(id))
+      : [];
+
+    if (!Number.isFinite(credits) || credits < 0) {
+      res.status(400).json({ error: 'credits must be a non-negative number' });
+      return;
+    }
+    if (!customerIds.length) {
+      res.status(400).json({ error: 'Select at least one customer' });
+      return;
+    }
+
+    const updated = await setCreditsBulk(customerIds, Math.floor(credits));
+    res.json({ ok: true, updated });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to bulk update credits';
+    res.status(400).json({ error: message });
   }
 });
 

@@ -122,6 +122,29 @@ export async function setCredits(
   return mapCustomer(rows[0]);
 }
 
+/** Set the same credit balance on many customers at once. */
+export async function setCreditsBulk(
+  shopifyCustomerIds: string[],
+  credits: number
+): Promise<number> {
+  if (credits < 0) throw new Error('Credits cannot be negative');
+  const ids = Array.from(
+    new Set(
+      shopifyCustomerIds
+        .map((id) => String(id || '').trim())
+        .filter(Boolean)
+    )
+  );
+  if (!ids.length) return 0;
+  const { rowCount } = await query(
+    `UPDATE customers
+     SET credits = $1, updated_at = NOW()
+     WHERE shopify_customer_id = ANY($2::text[])`,
+    [Math.floor(credits), ids]
+  );
+  return rowCount || 0;
+}
+
 export async function adjustCredits(
   shopifyCustomerId: string,
   delta: number

@@ -817,6 +817,43 @@ td.actions {
   display: flex;
   gap: 8px;
 }
+
+.bulk-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: var(--accent-soft, #f05a280d);
+  border: 1px solid #f05a28;
+  border-radius: 8px;
+}
+
+.bulk-bar.hidden {
+  display: none !important;
+}
+
+.bulk-count {
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.check-col {
+  width: 36px;
+  text-align: center;
+}
+
+.check-col input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #f05a28;
+}
+
+tr.is-selected {
+  background: rgba(240, 90, 40, 0.06);
+}
 }
 
 table {

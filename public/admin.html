@@ -51,10 +51,25 @@
           <input id="customerSearch" placeholder="Search customers…" />
           <button type="button" id="refreshCustomers" class="secondary">Refresh</button>
         </div>
+        <div class="bulk-bar hidden" id="customersBulkBar">
+          <span class="bulk-count" id="customersBulkCount">0 selected</span>
+          <input
+            id="bulkCreditsInput"
+            type="number"
+            min="0"
+            placeholder="Credits"
+            class="small"
+          />
+          <button type="button" id="bulkCreditsBtn">Update selected</button>
+          <button type="button" class="secondary" id="bulkClearBtn">Clear</button>
+        </div>
         <div class="table-wrap table-wrap-scroll">
           <table>
             <thead>
               <tr>
+                <th class="check-col">
+                  <input type="checkbox" id="selectAllCustomers" title="Select all on this page" aria-label="Select all on this page" />
+                </th>
                 <th>Name</th>
                 <th>Email</th>
                 <th>Company</th>
