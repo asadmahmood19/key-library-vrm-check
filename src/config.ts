@@ -17,7 +17,7 @@ export const config = {
   adminPassword: required('ADMIN_PASSWORD'),
   databaseUrl: required('DATABASE_URL'),
   cacheDurationDays: Number(process.env.CACHE_DURATION_DAYS || 7),
-  buyCreditsUrl: process.env.BUY_CREDITS_URL || 'https://www.keylibrary.co.uk/',
+  buyCreditsUrl: process.env.BUY_CREDITS_URL || 'https://www.keylibrary.co.uk/collections/vehicle-lookup-credits',
   sessionSecret: required('SESSION_SECRET'),
   vehicleApiBaseUrl: 'https://api.checkcardetails.co.uk/vehicledata/vehiclespecs',
   dvlaApiUrl: 'https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles',

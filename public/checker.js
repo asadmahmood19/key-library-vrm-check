@@ -20,7 +20,7 @@
   const howItWorksModal = document.getElementById('howItWorksModal');
   const howItWorksClose = document.getElementById('howItWorksClose');
 
-  let buyCreditsUrl = 'https://www.keylibrary.co.uk/';
+  let buyCreditsUrl = 'https://www.keylibrary.co.uk/collections/vehicle-lookup-credits';
   let credits = 0;
   let historyItems = [];
 
