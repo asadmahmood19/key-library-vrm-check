@@ -234,7 +234,7 @@
           escapeHtml(String(c.credits)) +
           '</td>' +
           '<td>' +
-          escapeHtml(Number(c.total_spend || 0).toFixed(2)) +
+          escapeHtml(String(c.credits_used != null ? c.credits_used : 0)) +
           '</td>' +
           '<td>' +
           escapeHtml(formatDateOnly(c.updated_at)) +
@@ -401,8 +401,9 @@
         selectedCustomerIds.add(String(id));
       });
       customersTotal = Number(data.total || customersTotal);
-      syncCustomerSelectionUi();
     });
+    // Must run after withButtonLoading restores button HTML
+    syncCustomerSelectionUi();
   });
 
   bulkClearBtn.addEventListener('click', clearCustomerSelection);

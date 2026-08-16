@@ -284,25 +284,49 @@ export async function deductOneCredit(shopifyCustomerId: string): Promise<Custom
   return rows[0] ? mapCustomer(rows[0]) : null;
 }
 
-export async function listCustomers(search?: string, limit = 100, offset = 0): Promise<Customer[]> {
+export async function listCustomers(search?: string, limit = 100, offset = 0): Promise<
+  Array<Customer & { credits_used: number }>
+> {
   if (search) {
-    const { rows } = await query<Customer>(
-      `SELECT * FROM customers
-       WHERE shopify_customer_id ILIKE $1
-          OR COALESCE(email, '') ILIKE $1
-          OR COALESCE(name, '') ILIKE $1
-          OR COALESCE(company, '') ILIKE $1
-       ORDER BY updated_at DESC
+    const { rows } = await query<Customer & { credits_used: string | number }>(
+      `SELECT c.*,
+              COALESCE((
+                SELECT COUNT(*)::int
+                FROM lookups l
+                WHERE l.shopify_customer_id = c.shopify_customer_id
+                  AND l.was_cached = FALSE
+              ), 0) AS credits_used
+       FROM customers c
+       WHERE c.shopify_customer_id ILIKE $1
+          OR COALESCE(c.email, '') ILIKE $1
+          OR COALESCE(c.name, '') ILIKE $1
+          OR COALESCE(c.company, '') ILIKE $1
+       ORDER BY c.updated_at DESC
        LIMIT $2 OFFSET $3`,
       [`%${search}%`, limit, offset]
     );
-    return rows.map(mapCustomer);
+    return rows.map((row) => ({
+      ...mapCustomer(row),
+      credits_used: Number(row.credits_used || 0),
+    }));
   }
-  const { rows } = await query<Customer>(
-    `SELECT * FROM customers ORDER BY updated_at DESC LIMIT $1 OFFSET $2`,
+  const { rows } = await query<Customer & { credits_used: string | number }>(
+    `SELECT c.*,
+            COALESCE((
+              SELECT COUNT(*)::int
+              FROM lookups l
+              WHERE l.shopify_customer_id = c.shopify_customer_id
+                AND l.was_cached = FALSE
+            ), 0) AS credits_used
+     FROM customers c
+     ORDER BY c.updated_at DESC
+     LIMIT $1 OFFSET $2`,
     [limit, offset]
   );
-  return rows.map(mapCustomer);
+  return rows.map((row) => ({
+    ...mapCustomer(row),
+    credits_used: Number(row.credits_used || 0),
+  }));
 }
 
 export async function countCustomers(search?: string): Promise<number> {
