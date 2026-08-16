@@ -215,8 +215,9 @@ export async function adjustCredits(
 }
 
 /**
- * Award credits from a single order's spend (no carry-over between orders).
- * Example: £15 order → 1 credit; leftover £5 is discarded, not saved for next order.
+ * Award credits from a single order subtotal (no carry-over between orders).
+ * Adds onto existing balance. Example: customer has 2 credits, £50 subtotal → +2 → 4 credits.
+ * Leftover under £25 on that order is discarded.
  */
 export async function applyOrderSpend(
   shopifyCustomerId: string,
@@ -251,11 +252,10 @@ export async function applyOrderSpend(
       `UPDATE customers
        SET credits = credits + $2,
            spend_remainder = 0,
-           total_spend = total_spend + $3,
            updated_at = NOW()
        WHERE shopify_customer_id = $1
        RETURNING *`,
-      [shopifyCustomerId, creditsAdded, total]
+      [shopifyCustomerId, creditsAdded]
     );
 
     await client.query('COMMIT');

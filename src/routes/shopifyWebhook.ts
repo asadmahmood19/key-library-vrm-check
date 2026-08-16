@@ -205,7 +205,7 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       orderSpend: result.orderSpend,
       creditsAdded: result.creditsAdded,
       creditsRemaining: result.customer.credits,
-      totalSpend: result.customer.total_spend,
+      poundsPerCredit: config.creditsPoundsPerCredit,
       topic,
     });
 
@@ -219,7 +219,6 @@ shopifyWebhookRouter.post('/orders', async (req: Request, res: Response) => {
       orderSpend: result.orderSpend,
       creditsAdded: result.creditsAdded,
       creditsRemaining: result.customer.credits,
-      totalSpend: result.customer.total_spend,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
