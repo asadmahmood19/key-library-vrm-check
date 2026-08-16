@@ -180,8 +180,8 @@
       if (count > 0) {
         selectAllInTableBtn.hidden = false;
         selectAllInTableBtn.textContent = allSelected
-          ? 'Unselect all'
-          : 'Select all ' + customersTotal + ' in table';
+          ? 'Unselect all ' + customersTotal
+          : 'Select all ' + customersTotal;
         selectAllInTableBtn.dataset.mode = allSelected ? 'unselect' : 'select';
       } else {
         selectAllInTableBtn.hidden = true;
