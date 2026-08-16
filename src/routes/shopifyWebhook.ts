@@ -10,6 +10,8 @@ interface ShopifyOrder {
   name?: string;
   email?: string | null;
   currency?: string;
+  /** Sum of line item prices before discounts, tax, and shipping */
+  total_line_items_price?: string | number;
   /** Line items after discounts, before shipping/tax */
   subtotal_price?: string | number;
   current_subtotal_price?: string | number;
@@ -39,11 +41,16 @@ function log(event: string, data: Record<string, unknown> = {}): void {
   );
 }
 
-/** Use subtotal only (excludes tax + delivery). */
+/**
+ * Credits use the line-items total BEFORE discounts.
+ * Still excludes tax and shipping.
+ * Example: Shopify shows Subtotal £225.80, Discounts -£5 → we use £225.80 (not £220.80).
+ */
 function orderSubtotal(order: ShopifyOrder): number {
   const raw =
-    order.current_subtotal_price ??
+    order.total_line_items_price ??
     order.subtotal_price ??
+    order.current_subtotal_price ??
     order.current_total_price ??
     order.total_price ??
     0;

@@ -96,9 +96,9 @@ Recommended event: **Order payment** (`orders/paid`).
 
 ### Rule
 
-**£25 of order subtotal = 1 lookup credit**, calculated **per order only** (no carry-over).
+**£25 of order line-items total = 1 lookup credit**, calculated **per order only** (no carry-over).
 
-Subtotal is used (after discounts), **excluding tax and delivery**.
+Uses Shopify **total line items price** (before discounts), **excluding tax and delivery**. Discounts are not subtracted.
 
 Only orders on/after **`CREDITS_START_DATE`** (default `2026-07-22`) count.
 
