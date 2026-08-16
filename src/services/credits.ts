@@ -145,6 +145,42 @@ export async function setCreditsBulk(
   return rowCount || 0;
 }
 
+/** Set different credit balances per customer in one request. */
+export async function setCreditsBulkUpdates(
+  updates: Array<{ customer_id: string; credits: number }>
+): Promise<number> {
+  const cleaned = updates
+    .map((u) => ({
+      customer_id: String(u.customer_id || '').trim(),
+      credits: Math.floor(Number(u.credits)),
+    }))
+    .filter((u) => u.customer_id && Number.isFinite(u.credits) && u.credits >= 0);
+
+  if (!cleaned.length) return 0;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    let updated = 0;
+    for (const row of cleaned) {
+      const result = await client.query(
+        `UPDATE customers
+         SET credits = $2, updated_at = NOW()
+         WHERE shopify_customer_id = $1`,
+        [row.customer_id, row.credits]
+      );
+      updated += result.rowCount || 0;
+    }
+    await client.query('COMMIT');
+    return updated;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 export async function adjustCredits(
   shopifyCustomerId: string,
   delta: number
@@ -283,4 +319,23 @@ export async function countCustomers(search?: string): Promise<number> {
   }
   const { rows } = await query<{ count: string }>(`SELECT COUNT(*)::text AS count FROM customers`);
   return Number(rows[0]?.count || 0);
+}
+
+export async function listCustomerIds(search?: string): Promise<string[]> {
+  if (search) {
+    const { rows } = await query<{ shopify_customer_id: string }>(
+      `SELECT shopify_customer_id FROM customers
+       WHERE shopify_customer_id ILIKE $1
+          OR COALESCE(email, '') ILIKE $1
+          OR COALESCE(name, '') ILIKE $1
+          OR COALESCE(company, '') ILIKE $1
+       ORDER BY updated_at DESC`,
+      [`%${search}%`]
+    );
+    return rows.map((r) => r.shopify_customer_id);
+  }
+  const { rows } = await query<{ shopify_customer_id: string }>(
+    `SELECT shopify_customer_id FROM customers ORDER BY updated_at DESC`
+  );
+  return rows.map((r) => r.shopify_customer_id);
 }

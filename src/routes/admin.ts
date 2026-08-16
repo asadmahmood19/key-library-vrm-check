@@ -6,8 +6,10 @@ import {
   adjustCredits,
   listCustomers,
   countCustomers,
+  listCustomerIds,
   setCredits,
   setCreditsBulk,
+  setCreditsBulkUpdates,
   setCreditsByEmail,
   upsertCustomer,
 } from '../services/credits';
@@ -107,8 +109,40 @@ adminRouter.post('/customers', async (req, res) => {
   }
 });
 
+adminRouter.get('/customers/ids', async (req, res) => {
+  try {
+    const search = req.query.search ? String(req.query.search) : undefined;
+    const ids = await listCustomerIds(search);
+    res.json({ ids, total: ids.length });
+  } catch (err) {
+    console.error('GET /api/admin/customers/ids', err);
+    res.status(500).json({ error: 'Failed to list customer ids' });
+  }
+});
+
 adminRouter.patch('/customers/credits/bulk', async (req, res) => {
   try {
+    const updates = Array.isArray(req.body.updates) ? req.body.updates : null;
+    if (updates) {
+      const cleaned = updates.map((u: { customer_id?: unknown; credits?: unknown }) => ({
+        customer_id: String(u.customer_id || ''),
+        credits: Number(u.credits),
+      }));
+      if (!cleaned.length) {
+        res.status(400).json({ error: 'Select at least one customer' });
+        return;
+      }
+      for (const row of cleaned) {
+        if (!row.customer_id || !Number.isFinite(row.credits) || row.credits < 0) {
+          res.status(400).json({ error: 'Each selected row needs a valid credits number (0 or more)' });
+          return;
+        }
+      }
+      const updated = await setCreditsBulkUpdates(cleaned);
+      res.json({ ok: true, updated });
+      return;
+    }
+
     const credits = Number(req.body.credits);
     const customerIds = Array.isArray(req.body.customer_ids)
       ? req.body.customer_ids.map((id: unknown) => String(id))

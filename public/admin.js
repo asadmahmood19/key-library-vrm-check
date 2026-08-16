@@ -18,10 +18,12 @@
   const bulkCreditsBtn = document.getElementById('bulkCreditsBtn');
   const bulkClearBtn = document.getElementById('bulkClearBtn');
   const selectAllCustomers = document.getElementById('selectAllCustomers');
+  const selectAllInTableBtn = document.getElementById('selectAllInTableBtn');
 
   const PAGE_SIZE = 50;
   let customersPage = 1;
   let lookupsPage = 1;
+  let customersTotal = 0;
   const selectedCustomerIds = new Set();
 
   function show(el) {
@@ -172,6 +174,17 @@
       count === 1 ? '1 selected' : count + ' selected';
     if (count > 0) show(customersBulkBar);
     else hide(customersBulkBar);
+
+    if (selectAllInTableBtn) {
+      const allSelected = customersTotal > 0 && count >= customersTotal;
+      if (count > 0 && !allSelected && customersTotal > pageSelected) {
+        selectAllInTableBtn.hidden = false;
+        selectAllInTableBtn.textContent =
+          'Select all ' + customersTotal + ' in table';
+      } else {
+        selectAllInTableBtn.hidden = true;
+      }
+    }
   }
 
   function clearCustomerSelection() {
@@ -188,6 +201,7 @@
     if (q) qs.set('search', q);
     const data = await api('/api/admin/customers?' + qs.toString());
     const total = Number(data.total || 0);
+    customersTotal = total;
     customersPage = renderPager(customersPager, customersPage, total, function (page) {
       customersPage = page;
       loadCustomers();
@@ -371,38 +385,103 @@
     syncCustomerSelectionUi();
   });
 
+  selectAllInTableBtn.addEventListener('click', async function () {
+    await withButtonLoading(selectAllInTableBtn, async function () {
+      const q = customerSearch.value.trim();
+      const qs = q ? '?search=' + encodeURIComponent(q) : '';
+      const data = await api('/api/admin/customers/ids' + qs);
+      (data.ids || []).forEach(function (id) {
+        selectedCustomerIds.add(String(id));
+      });
+      customersTotal = Number(data.total || customersTotal);
+      syncCustomerSelectionUi();
+    });
+  });
+
   bulkClearBtn.addEventListener('click', clearCustomerSelection);
 
   bulkCreditsBtn.addEventListener('click', async function () {
-    const credits = Number(bulkCreditsInput.value);
-    if (!Number.isFinite(credits) || credits < 0) {
-      alert('Enter a valid credits number (0 or more)');
-      return;
-    }
     const ids = Array.from(selectedCustomerIds);
     if (!ids.length) {
       alert('Select at least one customer');
       return;
     }
+
+    const sameCreditsRaw = String(bulkCreditsInput.value || '').trim();
+    const useSameCredits = sameCreditsRaw !== '';
+
+    if (useSameCredits) {
+      const credits = Number(sameCreditsRaw);
+      if (!Number.isFinite(credits) || credits < 0) {
+        alert('Enter a valid credits number (0 or more)');
+        return;
+      }
+      if (
+        !confirm(
+          'Set ' +
+            credits +
+            ' credit' +
+            (credits === 1 ? '' : 's') +
+            ' on ' +
+            ids.length +
+            ' selected customer' +
+            (ids.length === 1 ? '' : 's') +
+            '?'
+        )
+      ) {
+        return;
+      }
+      await withButtonLoading(bulkCreditsBtn, async function () {
+        await api('/api/admin/customers/credits/bulk', {
+          method: 'PATCH',
+          body: JSON.stringify({ customer_ids: ids, credits: credits }),
+        });
+        clearCustomerSelection();
+        bulkCreditsInput.value = '';
+        await Promise.all([loadCustomers(), loadStats()]);
+      });
+      return;
+    }
+
+    const updates = [];
+    const missing = [];
+    ids.forEach(function (id) {
+      const input = customersBody.querySelector('input[data-id="' + CSS.escape(id) + '"]');
+      if (!input) {
+        missing.push(id);
+        return;
+      }
+      const credits = Number(input.value);
+      if (!Number.isFinite(credits) || credits < 0) {
+        missing.push(id);
+        return;
+      }
+      updates.push({ customer_id: id, credits: credits });
+    });
+
+    if (missing.length) {
+      alert(
+        'Enter credits in each selected row on this page, or fill “Same credits for all” to update everyone selected (including other pages).'
+      );
+      return;
+    }
+
     if (
       !confirm(
-        'Set ' +
-          credits +
-          ' credit' +
-          (credits === 1 ? '' : 's') +
-          ' on ' +
-          ids.length +
+        'Update credits for ' +
+          updates.length +
           ' selected customer' +
-          (ids.length === 1 ? '' : 's') +
-          '?'
+          (updates.length === 1 ? '' : 's') +
+          ' using each row value?'
       )
     ) {
       return;
     }
+
     await withButtonLoading(bulkCreditsBtn, async function () {
       await api('/api/admin/customers/credits/bulk', {
         method: 'PATCH',
-        body: JSON.stringify({ customer_ids: ids, credits: credits }),
+        body: JSON.stringify({ updates: updates }),
       });
       clearCustomerSelection();
       bulkCreditsInput.value = '';

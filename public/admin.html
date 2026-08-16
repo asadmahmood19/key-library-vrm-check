@@ -53,12 +53,16 @@
         </div>
         <div class="bulk-bar hidden" id="customersBulkBar">
           <span class="bulk-count" id="customersBulkCount">0 selected</span>
+          <button type="button" class="linkish" id="selectAllInTableBtn" hidden>
+            Select all in table
+          </button>
           <input
             id="bulkCreditsInput"
             type="number"
             min="0"
-            placeholder="Credits"
+            placeholder="Same credits for all"
             class="small"
+            title="Optional: set the same credits for every selected customer"
           />
           <button type="button" id="bulkCreditsBtn">Update selected</button>
           <button type="button" class="secondary" id="bulkClearBtn">Clear</button>
