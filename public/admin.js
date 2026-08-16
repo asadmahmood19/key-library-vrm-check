@@ -177,12 +177,15 @@
 
     if (selectAllInTableBtn) {
       const allSelected = customersTotal > 0 && count >= customersTotal;
-      if (count > 0 && !allSelected && customersTotal > pageSelected) {
+      if (count > 0) {
         selectAllInTableBtn.hidden = false;
-        selectAllInTableBtn.textContent =
-          'Select all ' + customersTotal + ' in table';
+        selectAllInTableBtn.textContent = allSelected
+          ? 'Unselect all'
+          : 'Select all ' + customersTotal + ' in table';
+        selectAllInTableBtn.dataset.mode = allSelected ? 'unselect' : 'select';
       } else {
         selectAllInTableBtn.hidden = true;
+        selectAllInTableBtn.dataset.mode = 'select';
       }
     }
   }
@@ -386,6 +389,10 @@
   });
 
   selectAllInTableBtn.addEventListener('click', async function () {
+    if (selectAllInTableBtn.dataset.mode === 'unselect') {
+      clearCustomerSelection();
+      return;
+    }
     await withButtonLoading(selectAllInTableBtn, async function () {
       const q = customerSearch.value.trim();
       const qs = q ? '?search=' + encodeURIComponent(q) : '';
