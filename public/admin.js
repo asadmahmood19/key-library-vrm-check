@@ -24,6 +24,8 @@
   let customersPage = 1;
   let lookupsPage = 1;
   let customersTotal = 0;
+  let customersSort = 'credits_used';
+  let customersDir = 'desc';
   const selectedCustomerIds = new Set();
 
   function show(el) {
@@ -195,11 +197,39 @@
     syncCustomerSelectionUi();
   }
 
+  function updateCustomerSortHeaders() {
+    document.querySelectorAll('.th-sort[data-sort]').forEach(function (btn) {
+      const field = btn.getAttribute('data-sort');
+      const active = field === customersSort;
+      btn.classList.toggle('is-active', active);
+      if (!active) {
+        btn.removeAttribute('aria-sort');
+        btn.title =
+          field === 'credits' ? 'Sort: most earned' : 'Sort: most used';
+        return;
+      }
+      btn.setAttribute('aria-sort', customersDir === 'asc' ? 'ascending' : 'descending');
+      if (field === 'credits') {
+        btn.title =
+          customersDir === 'desc'
+            ? 'Most earned — click for least earned'
+            : 'Least earned — click for most earned';
+      } else {
+        btn.title =
+          customersDir === 'desc'
+            ? 'Most used — click for least used'
+            : 'Least used — click for most used';
+      }
+    });
+  }
+
   async function loadCustomers() {
     const q = customerSearch.value.trim();
     const qs = new URLSearchParams({
       limit: String(PAGE_SIZE),
       offset: String((customersPage - 1) * PAGE_SIZE),
+      sort: customersSort,
+      dir: customersDir,
     });
     if (q) qs.set('search', q);
     const data = await api('/api/admin/customers?' + qs.toString());
@@ -253,6 +283,7 @@
         );
       })
       .join('');
+    updateCustomerSortHeaders();
     syncCustomerSelectionUi();
   }
 
@@ -367,6 +398,21 @@
       customersPage = 1;
       withButtonLoading(refreshCustomers, loadCustomers);
     }
+  });
+
+  document.querySelectorAll('.th-sort[data-sort]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const field = btn.getAttribute('data-sort');
+      if (!field) return;
+      if (customersSort === field) {
+        customersDir = customersDir === 'desc' ? 'asc' : 'desc';
+      } else {
+        customersSort = field;
+        customersDir = 'desc';
+      }
+      customersPage = 1;
+      loadCustomers();
+    });
   });
 
   customersBody.addEventListener('change', function (e) {

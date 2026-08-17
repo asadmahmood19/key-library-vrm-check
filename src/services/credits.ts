@@ -284,24 +284,42 @@ export async function deductOneCredit(shopifyCustomerId: string): Promise<Custom
   return rows[0] ? mapCustomer(rows[0]) : null;
 }
 
-export async function listCustomers(search?: string, limit = 100, offset = 0): Promise<
-  Array<Customer & { credits_used: number }>
-> {
+export type CustomerSortField = 'credits' | 'credits_used';
+export type SortDir = 'asc' | 'desc';
+
+function customerOrderSql(sort: CustomerSortField, dir: SortDir): string {
+  const direction = dir === 'asc' ? 'ASC' : 'DESC';
+  if (sort === 'credits') {
+    return `c.credits ${direction}, credits_used DESC, c.updated_at DESC`;
+  }
+  return `credits_used ${direction}, c.credits DESC, c.updated_at DESC`;
+}
+
+const CREDITS_USED_SQL = `COALESCE((
+  SELECT COUNT(*)::int
+  FROM lookups l
+  WHERE l.shopify_customer_id = c.shopify_customer_id
+    AND l.was_cached = FALSE
+), 0) AS credits_used`;
+
+export async function listCustomers(
+  search?: string,
+  limit = 100,
+  offset = 0,
+  sort: CustomerSortField = 'credits_used',
+  dir: SortDir = 'desc'
+): Promise<Array<Customer & { credits_used: number }>> {
+  const orderBy = customerOrderSql(sort, dir);
   if (search) {
     const { rows } = await query<Customer & { credits_used: string | number }>(
       `SELECT c.*,
-              COALESCE((
-                SELECT COUNT(*)::int
-                FROM lookups l
-                WHERE l.shopify_customer_id = c.shopify_customer_id
-                  AND l.was_cached = FALSE
-              ), 0) AS credits_used
+              ${CREDITS_USED_SQL}
        FROM customers c
        WHERE c.shopify_customer_id ILIKE $1
           OR COALESCE(c.email, '') ILIKE $1
           OR COALESCE(c.name, '') ILIKE $1
           OR COALESCE(c.company, '') ILIKE $1
-       ORDER BY c.updated_at DESC
+       ORDER BY ${orderBy}
        LIMIT $2 OFFSET $3`,
       [`%${search}%`, limit, offset]
     );
@@ -312,14 +330,9 @@ export async function listCustomers(search?: string, limit = 100, offset = 0): P
   }
   const { rows } = await query<Customer & { credits_used: string | number }>(
     `SELECT c.*,
-            COALESCE((
-              SELECT COUNT(*)::int
-              FROM lookups l
-              WHERE l.shopify_customer_id = c.shopify_customer_id
-                AND l.was_cached = FALSE
-            ), 0) AS credits_used
+            ${CREDITS_USED_SQL}
      FROM customers c
-     ORDER BY c.updated_at DESC
+     ORDER BY ${orderBy}
      LIMIT $1 OFFSET $2`,
     [limit, offset]
   );

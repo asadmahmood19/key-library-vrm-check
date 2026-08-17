@@ -891,6 +891,44 @@ th {
   font-size: 0.8rem;
 }
 
+.th-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.th-sort:hover {
+  color: var(--accent, #f05a28);
+}
+
+.th-sort.is-active {
+  color: #222;
+}
+
+.sort-arrow::after {
+  content: '⇅';
+  font-size: 0.85em;
+  opacity: 0.35;
+}
+
+.th-sort[aria-sort='descending'] .sort-arrow::after {
+  content: '▼';
+  opacity: 1;
+}
+
+.th-sort[aria-sort='ascending'] .sort-arrow::after {
+  content: '▲';
+  opacity: 1;
+}
+
 td .actions {
   display: flex;
   gap: 6px;

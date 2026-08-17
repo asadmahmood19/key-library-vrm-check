@@ -1,4 +1,4 @@
-{% if customer and customer.orders_count > 0 %}
+{% if customer %}
   {% assign vrm_company = '' %}
   {% if customer.default_address and customer.default_address.company != blank %}
     {% assign vrm_company = customer.default_address.company %}
@@ -26,10 +26,6 @@
       }
     });
   </script>
-{% elsif customer and customer.orders_count == 0 %}
-  <div style="text-align: center; margin: 35px 0;">
-    <p class="no-orders" style="color: red;font-weight: bold;margin: 0 20px;">Users must have at least one completed order to access the registration checker.</p>
-  </div>
 {% else %}
   <div style="display: flex; justify-content: center; margin: 35px 0;">
     <a href="https://www.keylibrary.co.uk/account/login" class="log-reg button button--secondary">
@@ -39,7 +35,4 @@
 {% endif %}
 <style>
 .vrm-check iframe { overflow: hidden; }
-@media(min-width:768px){
- .no-orders{   font-size: 22px; }
-}
 </style>

@@ -7,6 +7,8 @@ import {
   listCustomers,
   countCustomers,
   listCustomerIds,
+  type CustomerSortField,
+  type SortDir,
   setCredits,
   setCreditsBulk,
   setCreditsBulkUpdates,
@@ -69,16 +71,26 @@ adminRouter.get('/stats', async (_req, res) => {
   }
 });
 
+function parseCustomerSort(raw: unknown): CustomerSortField {
+  return raw === 'credits' ? 'credits' : 'credits_used';
+}
+
+function parseSortDir(raw: unknown): SortDir {
+  return raw === 'asc' ? 'asc' : 'desc';
+}
+
 adminRouter.get('/customers', async (req, res) => {
   try {
     const search = req.query.search ? String(req.query.search) : undefined;
     const limit = Math.min(Math.max(Number(req.query.limit || 50), 1), 200);
     const offset = Math.max(Number(req.query.offset || 0), 0);
+    const sort = parseCustomerSort(req.query.sort);
+    const dir = parseSortDir(req.query.dir);
     const [customers, total] = await Promise.all([
-      listCustomers(search, limit, offset),
+      listCustomers(search, limit, offset, sort, dir),
       countCustomers(search),
     ]);
-    res.json({ customers, total, limit, offset });
+    res.json({ customers, total, limit, offset, sort, dir });
   } catch (err) {
     console.error('GET /api/admin/customers', err);
     res.status(500).json({ error: 'Failed to list customers' });
